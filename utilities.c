@@ -1,5 +1,9 @@
+#include <errno.h>
 #include <stdio.h>
-
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 
 int parse_arguments(int argc, char ** argv, char** docfile, int *num_workers){
@@ -9,23 +13,23 @@ int parse_arguments(int argc, char ** argv, char** docfile, int *num_workers){
     exit(-1);
   }
   while(i<argc){
-    if(!strcmp(argv[i], "-D")){ //parse docfile
-      *doc = malloc(strlen(argv[++i])+1);
-      strcpy(*doc, argv[i]);
+    if(!strcmp(argv[i], "-d")){ //parse docfile
+      *docfile = malloc(strlen(argv[++i])+1);
+      strcpy(*docfile, argv[i]);
     }
     else if(!strcmp(argv[i], "-w")){  //parse workers
-      *k = atoi(argv[++i]);
+      *num_workers = atoi(argv[++i]);
     }
     i++;  //move to the next arg one incremation has already been done
   }
-  printf("w is %d\n", *k);
+  printf("w is %d\n", *num_workers);
   return 1;
 }
 
 
 //parsedocfile reads all the paths in the file specified by doc
 int parse_docfile(char* doc, char*** paths, int *pathsize){
-  int docm = 8 docc=0; //arbitary start from 8 words
+  int docm = 8, docc=0; //arbitary start from 8 words
   int wordm = 2, wordc=0; //start from a word with 2 characters
   int ch;
   FILE * docf = fopen(doc, "r");
@@ -46,18 +50,18 @@ int parse_docfile(char* doc, char*** paths, int *pathsize){
       docm *= 2;
       *paths = realloc(*paths, docm*sizeof(char*));
     }
-    (*paths)[id] = malloc(wordm); //allocate memory for the word
+    (*paths)[docc] = malloc(wordm); //allocate memory for the word
 
     while((ch=getc(docf)) != '\n'){
       if(wordc+1 == wordm){  //realloc condition -- save space for '\0'
         wordm *= 2;
-        (*paths)[id] = realloc((*paths)[id], wordm);
+        (*paths)[docc] = realloc((*paths)[docc], wordm);
       }
-      (*paths)[id][wordc++] = ch; //save character in paths
+      (*paths)[docc][wordc++] = ch; //save character in paths
     } //document is saved exactly as read --including whitespace
 
-    (*paths)[id][wordc] = '\0';
-    (*paths)[id] = realloc((*paths)[id], wordc+1); //shrink to fit
+    (*paths)[docc][wordc] = '\0';
+    (*paths)[docc] = realloc((*paths)[docc], wordc+1); //shrink to fit
     *pathsize = ++docc;    //necessary update in case of emergency
     wordm = 2;  //re-initialize for next document
     wordc = 0;
@@ -66,4 +70,32 @@ int parse_docfile(char* doc, char*** paths, int *pathsize){
   //*pathsize = id+1;
   fclose(docf);
   return 1;
+}
+
+int make_fifo_arrays(char ***job_to_w, char***w_to_job, int num_workers){
+  int len = strlen("jtw") + 2;
+  *job_to_w = malloc(num_workers*sizeof(char*));
+  *w_to_job = malloc(num_workers*sizeof(char*));
+  for(int i=0; i<num_workers; i++){
+    (*job_to_w)[i] = malloc(len);
+    (*w_to_job)[i] = malloc(len);
+    sprintf((*job_to_w)[i], "jtw%d", i);
+    sprintf((*w_to_job)[i], "wtj%d", i);
+  }
+  for(int i=0; i<num_workers; i++){
+    printf("%s\n", (*job_to_w)[i]);
+    printf("%s\n", (*w_to_job)[i]);
+    if (mkfifo((*job_to_w)[i], 0666) == -1 ) {
+      if (errno != EEXIST ) {
+        perror ( " receiver : mkfifo " ) ;
+        exit (6) ;
+      }
+    }
+    if (mkfifo((*w_to_job)[i], 0666) == -1 ) {
+      if (errno != EEXIST ) {
+        perror ( " receiver : mkfifo " ) ;
+        exit (6) ;
+      }
+    }
+  }
 }
