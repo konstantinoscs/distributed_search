@@ -33,6 +33,7 @@ int parse_docfile(char* doc, char*** paths, int *pathsize){
   int wordm = 2, wordc=0; //start from a word with 2 characters
   int ch;
   FILE * docf = fopen(doc, "r");
+  *pathsize = 0;
 
   *paths = malloc(docm*sizeof(char*));
 
@@ -93,7 +94,7 @@ int make_fifo_arrays(char ***job_to_w, char***w_to_job, int num_workers){
     }
     if (mkfifo((*w_to_job)[i], 0666) == -1 ) {
       if (errno != EEXIST ) {
-        perror ( " receiver : mkfifo " ) ;
+        perror ( "receiver : mkfifo " ) ;
         exit (6) ;
       }
     }

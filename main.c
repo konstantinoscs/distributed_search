@@ -1,3 +1,5 @@
+#include <errno.h>
+#include <fcntl.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,8 +15,11 @@ int main(int argc, char **argv){
   char **paths=NULL; //for each process this is different
   char ** job_to_w=NULL, **w_to_job = NULL;
   int num_workers = 0, total_pathsize=0, pathsize=0, paths_until_now=0;
-  int status;
+  int status, nwrite = 0, id; //child status and no of bytes written/read
   pid_t *child = NULL;
+  int *fifo_in = NULL, *fifo_out = NULL;
+  int msgsize = 66;
+  char msgbuf[66]; //= malloc(msgsize);
 
   if(!parse_arguments(argc, argv, &docfile, &num_workers)){
     exit(-1);
@@ -30,6 +35,7 @@ int main(int argc, char **argv){
   for(int i=0; i<num_workers; i++){
     paths = total_paths + paths_until_now;
     if ((child[i] = fork()) == 0){
+      id = i;
       //worker process
       free(child);  //copy on write, should be lightweight
       child = NULL;
@@ -40,6 +46,7 @@ int main(int argc, char **argv){
       for(int i=0; i<total_pathsize; i++)
         free(total_paths[i]);
       free(total_paths);
+      printf("child %d exiting!\n", id);
       exit(0);
     }
     else{
@@ -50,6 +57,25 @@ int main(int argc, char **argv){
       }
     }
   }
+
+  fifo_in = malloc(num_workers*sizeof(int));
+  fifo_out = malloc(num_workers*sizeof(int));
+
+  for(int i=0; i<num_workers; i++){
+    if ((fifo_out[i] = open(job_to_w[i], O_WRONLY)) < 0){
+      perror ( "fifo out open error " ) ;
+      exit(1);
+    }
+  }
+
+  for(int i=0; i<num_workers; i++){
+    sprintf(msgbuf, "Hello process %d", i);
+    if((nwrite = write (fifo_out[i], msgbuf, msgsize) ) == -1){
+      perror(" Error in Writing ") ;
+      exit(2);
+    }
+  }
+  printf("Exit\n");
 
   //father process
   /*while(1){
@@ -107,4 +133,6 @@ int main(int argc, char **argv){
   free(child);
   free(docfile);
   free(total_paths);
+  free(fifo_in);
+  free(fifo_out);
 }
