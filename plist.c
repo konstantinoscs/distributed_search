@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "plist.h"
 
@@ -28,34 +29,40 @@ int search_n_get(FreqInfo *frequency, int docno){
     current = current->next;
   }
   return current->appreance;
-}
+}*/
 
 void delete_list(Plist *list){
-  if(list->frequencies!=NULL){
-    delete_freq(list->frequencies);
-    free(list->frequencies);
+  if(list->info!=NULL){
+    delete_doc(list->info);
+    free(list->info);
   }
-  if(list->word!=NULL)
-    free(list->word);
 }
 
 //update the posting list for a word
-void search_n_update(Plist *list, int docno){
-  FreqInfo *temp = NULL;
-  if(list->last->doc != docno){
-    temp = malloc(sizeof(FreqInfo));
-    temp->doc = docno;
-    temp->appreance = 0;
+void search_n_update(Plist *list, char *path, int line){
+  DocInfo *temp = NULL;
+  if(strcmp(list->last->doc, path)){
+    temp = malloc(sizeof(DocInfo));
+    temp->doc = path;
+    temp->appearance = malloc(sizeof(int));
+    temp->appearance[0] = line;
+    temp->no_lines = 1;
     temp->next = NULL;
     list->last->next = temp;
     list->last = temp;
-    list->docs++;
   }
-  list->last->appreance++;
-  list->appearances++;
+  else{
+    if(list->last->appearance[list->last->no_appear-1] != line){
+      list->last->no_lines++;
+      list->last->appearance = realloc(list->last->appearance,
+        list->last->no_lines*sizeof(int));
+      list->last->appearance[list->last->no_appear-1] = line;
+    }
+    list->last->no_appear++;
+  }
 }
 
-void print_list(Plist *list){
+/*void print_list(Plist *list){
   printf("[");
   print_freq(list->frequencies);
   printf("]");
