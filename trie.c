@@ -3,8 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "trie.h"
+#include "registry.h"
 #include "plist.h"
+#include "trie.h"
 
 //initialize a trie node
 void init_trie(TrieNode *node, char ch){
@@ -15,27 +16,25 @@ void init_trie(TrieNode *node, char ch){
 }
 
 //initialize the posting list for a word
-void init_plist(TrieNode *node, char* word, int len, int docno){
+void init_plist(TrieNode *node, char* path, int line){
   node->list = malloc(sizeof(Plist));
-  node->list->word = malloc(len+1);
-  strncpy(node->list->word, word, len);
-  node->list->word[len] = '\0';
-  node->list->appearances = 1;
-  node->list->docs = 1;
   //initialize the frequencies list
-  node->list->frequencies = malloc(sizeof(FreqInfo));
-  node->list->frequencies->doc = docno;
-  node->list->frequencies->appreance = 1; //add the first appearance
-  node->list->frequencies->next = NULL;
-  node->list->last = node->list->frequencies; //last is also the first
+  node->list->info = malloc(sizeof(DocInfo));
+  node->list->info->doc = path;
+  node->list->info->appearance = malloc(sizeof(int)); //add the first appearance
+  node->list->info->appearance[0] = line;
+  node->list->info->no_lines = 1;
+  node->list->info->no_appear = 1;
+  node->list->info->next = NULL;
+  node->list->last = node->list->info; //last is also the first
 }
 
-void insert_in_trie(TrieNode *node, char *word, int pos, int len, int docno){
+void insert_in_trie(TrieNode *node, char *word, int pos, int len, char *path, int line){
   //printf("%c, p:%d, l:%d\n", word[pos], pos, len);
   if(node->letter == word[pos]){
     if(pos+1 == len){  //word has ended with the current letter
       if(node->list ==NULL)
-        init_plist(node, word, len, docno);
+        init_plist(node, path, line);
       else
         search_n_update(node->list, docno);
     }
@@ -113,7 +112,40 @@ void delete_trie(TrieNode *node){
   }
 }
 
-TrieNode* makeTrie(char **documents, int docsize){
+TrieNode* makeTrie(Registry *documents, int docsize){
+  TrieNode * trie = malloc(sizeof(TrieNode));
+  char *word = NULL, *subs = NULL, ch= ' ';
+  size_t len = 0, j=0;
+  init_trie(trie, documents[0].text[0][0]);
+  for(int j=0; j<docsize; j++){
+    for(int i=0; i<documents[j].lines; i++){
+      ch = ' ';
+      subs = documents[j].text[i];
+      while(isspace(subs[0]))   //set substring to new word
+        subs++;
+      while(ch!= '\0'){   //start breaking each document in words
+        len=0;
+        //count the length of each word
+        while((ch = subs[len]) != ' ' && ch !='\t' && ch != '\0')
+          len++;
+        //copy the word in variable
+        word = subs;
+        if(trie->letter > word[0])     //swap root to maintain order (& law)
+          swap_root(&trie, word[0]);
+        //insert to trie
+        //printf("Klisi\n");
+        insert_in_trie(trie, word, 0, len, i);
+        subs += len;
+        if(ch != '\0')           //if it's the end of the document don't search
+          while(isspace(ch=subs[0]))   //set substring to new word
+            subs++;
+      }
+    }
+  }
+  return trie;
+}
+
+/*TrieNode* makeTrie(char **documents, int docsize){
   TrieNode * trie = malloc(sizeof(TrieNode));
   char *word = NULL, *subs = NULL, ch= ' ';
   size_t len = 0, j=0;
@@ -142,7 +174,7 @@ TrieNode* makeTrie(char **documents, int docsize){
     }
   }
   return trie;
-}
+}*/
 
 void document_frequency(TrieNode *node){
   if(node->list !=NULL){

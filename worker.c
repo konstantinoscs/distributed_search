@@ -35,15 +35,15 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
   DIR *dir;
   struct dirent *ent;
 
-  printf("Process:%d, pathsize %d\n", getpid(), pathsize);
+  /*printf("Process:%d, pathsize %d\n", getpid(), pathsize);
   printf("Paths:\n");
   for(int i=0; i<pathsize; i++)
     printf("Process:%d path %s\n", getpid(), paths[i]);
   printf("Process:%d fifo %s\n", getpid(), job_to_w);
-  printf("Process:%d fifo %s\n", getpid(), w_to_job);
+  printf("Process:%d fifo %s\n", getpid(), w_to_job);*/
   //here load everything to memory - trie
   for(int i=0; i<pathsize; i++){
-    printf("Testing path:%s\n", paths[i]);
+    //printf("Testing path:%s\n", paths[i]);
     if ((dir = opendir (paths[i])) != NULL) {
       /* print all the files and directories within directory */
       while ((ent = readdir (dir)) != NULL) {
@@ -55,8 +55,8 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
         }
         //initialize new registry
 
-        printf("Before\n");
-        printf ("%s\n", ent->d_name);
+        //printf("Before\n");
+        //printf ("%s\n", ent->d_name);
         abspath = realloc(abspath, strlen(paths[i])+strlen(ent->d_name)+2);
         strcpy(abspath, paths[i]);
         strcat(abspath, "/");
@@ -65,35 +65,34 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
         documents[docc].path = malloc(strlen(abspath)+1);
         strcpy(documents[docc].path, abspath);
         parse_docfile(documents[docc].path, &(documents[docc].text), &(documents[docc].lines));
-        printf("After\n");
         docc++;
-        printf ("%s\n", ent->d_name);
-
       }
       closedir (dir);
     }
-    /*else {
+    else {
     // could not open directory
       perror ("error");
       return EXIT_FAILURE;
-    }*/
+    }
   }
-  printf("Will exit\n");
   /*for(int i=0; i<docc; i++){
     printf("File: %s\n", documents[i].path);
     for(int j=0; j<documents[i].lines; j++){
       printf("%s\n", documents[i].text[j]);
     }
   }*/
-  free(abspath);
-  free_documents(&documents, docc);
-  return 1;
 
   //here
   if ((fin = open(job_to_w, O_RDWR )) < 0) {
     perror ("fifo in open problem") ;
     exit(1) ;
   }
+
+  close(fin);
+  free(abspath);
+  free_documents(&documents, docc);
+  printf("Will exit\n");
+  return 1;
 
   /*if ((fout = open(w_to_job, O_WRONLY)) < 0){
     perror ( "fifo out open error " ) ;

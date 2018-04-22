@@ -3,14 +3,15 @@
 
 #include "plist.h"
 
-void delete_freq(FreqInfo *frequency){
-  if(frequency->next!=NULL){
-    delete_freq(frequency->next);
-    free(frequency->next);
+void delete_doc(DocInfo *info){
+  if(info->next!=NULL){
+    delete_doc(info->next);
+    free(info->next);
   }
+  free(info->appearance);
 }
 
-void print_freq(FreqInfo *frequency){
+/*void print_freq(FreqInfo *frequency){
   printf("[%d, %d]", frequency->doc, frequency->appreance);
   if(frequency->next!=NULL){
     printf(",");
@@ -82,4 +83,4 @@ void get_all_docid(Plist *list, int **ids, int*idsize){
     (*ids)[currentId++] = current->doc;
     current = current->next;
   }
-}
+}*/

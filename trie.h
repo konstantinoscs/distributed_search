@@ -2,6 +2,7 @@
 #define TRIE_H
 
 #include "plist.h"
+#include "registry.h"
 
 typedef struct TrieNode{
   char letter;          //the character of this node
@@ -18,7 +19,7 @@ void print_trie(TrieNode *node);
 //deletes trie
 void delete_trie(TrieNode *node);
 //constructs trie with all words in the documents
-TrieNode* makeTrie(char **documents, int docsize);
+TrieNode* makeTrie(Registry *documents, int docsize);
 //prints the document frequency for all words in the trie
 void document_frequency(TrieNode *node);
 //returns the term frequency of a word in documents with id docno

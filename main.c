@@ -37,15 +37,10 @@ int main(int argc, char **argv){
     if ((child[i] = fork()) == 0){
       id = i;
       //worker process
-      free(child);  //copy on write, should be lightweight
-      child = NULL;
-      //worker operate
       worker_operate(paths, pathsize, job_to_w[i], w_to_job[i]);
-
-      free(docfile);
-      for(int i=0; i<total_pathsize; i++)
-        free(total_paths[i]);
-      free(total_paths);
+      //free everything
+      free_worker(child, docfile, total_pathsize, total_paths, num_workers,
+        job_to_w, w_to_job);
       printf("child %d exiting!\n", id);
       exit(0);
     }
@@ -68,13 +63,13 @@ int main(int argc, char **argv){
     }
   }
 
-  for(int i=0; i<num_workers; i++){
+  /*for(int i=0; i<num_workers; i++){
     sprintf(msgbuf, "Hello process %d", i);
     if((nwrite = write (fifo_out[i], msgbuf, msgsize) ) == -1){
       perror(" Error in Writing ") ;
       exit(2);
     }
-  }
+  }*/
   printf("Exit\n");
 
   //father process
@@ -125,14 +120,14 @@ int main(int argc, char **argv){
     }
     printf("\n");
   }*/
+  for (int i=0; i<num_workers; i++){
+    close(fifo_out[i]);
+    unlink(job_to_w[i]);
+    unlink(w_to_job[i]);
+  }
 
-  for (int i=0; i<num_workers; i++)
+  for (int i=0; i<num_workers; i++) // kill
         wait(&status);
-  for(int i=0; i<total_pathsize; i++)
-    free(total_paths[i]);
-  free(child);
-  free(docfile);
-  free(total_paths);
-  free(fifo_in);
-  free(fifo_out);
+  free_executor(child, docfile, total_pathsize, total_paths, num_workers,
+    job_to_w, w_to_job, fifo_in, fifo_out);
 }

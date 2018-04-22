@@ -100,3 +100,27 @@ int make_fifo_arrays(char ***job_to_w, char***w_to_job, int num_workers){
     }
   }
 }
+
+int free_worker(pid_t *child, char *docfile, int pathsize, char **paths,
+  int num_workers, char **job_to_w, char**w_to_job){
+
+  free(child);  //copy on write, should be lightweight
+  free(docfile);
+  for(int i=0; i<pathsize; i++)
+    free(paths[i]);
+  free(paths);
+  for (int i=0; i<num_workers; i++){
+    free(job_to_w[i]);
+    free(w_to_job[i]);
+  }
+  free(job_to_w);
+  free(w_to_job);
+}
+
+int free_executor(pid_t *child, char *docfile, int pathsize, char **paths,
+  int num_workers, char **job_to_w, char**w_to_job, int *fifo_in, int *fifo_out){
+
+  free_worker(child, docfile, pathsize, paths, num_workers, job_to_w, w_to_job);
+  free(fifo_in);
+  free(fifo_out);  
+}
