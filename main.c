@@ -31,6 +31,7 @@ int main(int argc, char **argv){
   make_fifo_arrays(&job_to_w, &w_to_job, num_workers);
   //HERE assign number of paths to workers/ ceil(pathsize/workers)?
   pathsize = ceil((double)total_pathsize/(double)num_workers);
+  printf("Total pathsize/General pathsize: %d/%d\n", total_pathsize, pathsize);
   //start forking workers
   for(int i=0; i<num_workers; i++){
     paths = total_paths + paths_until_now;
@@ -56,12 +57,12 @@ int main(int argc, char **argv){
   fifo_in = malloc(num_workers*sizeof(int));
   fifo_out = malloc(num_workers*sizeof(int));
 
-  for(int i=0; i<num_workers; i++){
+  /*for(int i=0; i<num_workers; i++){
     if ((fifo_out[i] = open(job_to_w[i], O_WRONLY)) < 0){
       perror ( "fifo out open error " ) ;
       exit(1);
     }
-  }
+  }*/
 
   /*for(int i=0; i<num_workers; i++){
     sprintf(msgbuf, "Hello process %d", i);
@@ -121,7 +122,7 @@ int main(int argc, char **argv){
     printf("\n");
   }*/
   for (int i=0; i<num_workers; i++){
-    close(fifo_out[i]);
+    //close(fifo_out[i]);
     unlink(job_to_w[i]);
     unlink(w_to_job[i]);
   }

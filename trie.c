@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "registry.h"
 #include "plist.h"
@@ -116,6 +117,7 @@ TrieNode* makeTrie(Registry *documents, int docsize){
   TrieNode * trie = malloc(sizeof(TrieNode));
   char *word = NULL, *subs = NULL, ch= ' ';
   size_t len = 0, j=0;
+  printf("process:%d docsize: %d\n", getpid(), docsize);
   init_trie(trie, documents[0].text[0][0]);
   for(int j=0; j<docsize; j++){
     for(int i=0; i<documents[j].lines; i++){

@@ -87,12 +87,13 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
   }*/
 
   //here
-  if ((fin = open(job_to_w, O_RDWR )) < 0) {
+  /*if ((fin = open(job_to_w, O_RDONLY)) < 0) {
     perror ("fifo in open problem") ;
     exit(1) ;
-  }
+  }*/
+  //sleep(3);
 
-  close(fin);
+  //close(fin);
   free(abspath);
   free_documents(&documents, docc);
   delete_trie(trie);
