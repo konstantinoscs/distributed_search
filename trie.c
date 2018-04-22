@@ -79,7 +79,7 @@ void swap_root(TrieNode **root, char ch){
 }
 
 //recursively (sort of) print trie
-void print_trie(TrieNode *node){
+/*void print_trie(TrieNode *node){
   printf("%c ", node->letter);
   if(node->list !=NULL){
     printf(" word here: %s ", node->list->word);
@@ -95,7 +95,7 @@ void print_trie(TrieNode *node){
     printf("Next: ");
     print_trie(node->next);
   }
-}
+}*/
 
 void delete_trie(TrieNode *node){
   if(node->down!=NULL){
@@ -175,7 +175,7 @@ TrieNode* makeTrie(Registry *documents, int docsize){
   return trie;
 }*/
 
-void document_frequency(TrieNode *node){
+/*void document_frequency(TrieNode *node){
   if(node->list !=NULL){
     printf("%s %d\n", node->list->word, calculate_doc_appearances(node->list));
   }
@@ -183,7 +183,7 @@ void document_frequency(TrieNode *node){
     document_frequency(node->down);
   if(node->next!=NULL)
     document_frequency(node->next);
-}
+}*/
 
 TrieNode* find_word(TrieNode *node, char* word){
   TrieNode *current = node;
@@ -202,7 +202,7 @@ TrieNode* find_word(TrieNode *node, char* word){
   return current;
 }
 
-int term_frequency(TrieNode *node, char *word, int docno){
+/*int term_frequency(TrieNode *node, char *word, int docno){
   TrieNode *current = find_word(node, word);
   if(current == NULL)
     return 0;
@@ -231,4 +231,4 @@ void get_word_docid(TrieNode *node, char *word, int **ids, int *idsize){
   }
   else
     get_all_docid(current->list, ids, idsize);
-}
+}*/

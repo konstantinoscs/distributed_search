@@ -34,6 +34,7 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
   Registry *documents = malloc(docm*sizeof(Registry));
   DIR *dir;
   struct dirent *ent;
+  TrieNode *trie = NULL;
 
   /*printf("Process:%d, pathsize %d\n", getpid(), pathsize);
   printf("Paths:\n");
@@ -75,6 +76,9 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
       return EXIT_FAILURE;
     }
   }
+  //here make trie and insert
+  trie = makeTrie(documents, docc);
+
   /*for(int i=0; i<docc; i++){
     printf("File: %s\n", documents[i].path);
     for(int j=0; j<documents[i].lines; j++){
@@ -91,6 +95,8 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
   close(fin);
   free(abspath);
   free_documents(&documents, docc);
+  delete_trie(trie);
+  free(trie);
   printf("Will exit\n");
   return 1;
 

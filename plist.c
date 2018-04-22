@@ -52,11 +52,11 @@ void search_n_update(Plist *list, char *path, int line){
     list->last = temp;
   }
   else{
-    if(list->last->appearance[list->last->no_appear-1] != line){
+    if(list->last->appearance[list->last->no_lines-1] != line){
       list->last->no_lines++;
       list->last->appearance = realloc(list->last->appearance,
         list->last->no_lines*sizeof(int));
-      list->last->appearance[list->last->no_appear-1] = line;
+      list->last->appearance[list->last->no_lines-1] = line;
     }
     list->last->no_appear++;
   }
