@@ -98,7 +98,7 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
     exit(1) ;
   }*/
 
-  for (;;) {
+  while(1){
     nread = read(fin, &queriesNo, sizeof(int));
     if (nread < 0) {
       perror ("problem in reading ");
@@ -138,9 +138,24 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
     }
 
     cmd = queries[0];
-    if(!strcmp(cmd, "/exit")){
+    if(!strcmp(cmd, "/search")){
+
+    }
+    else if(!strcmp(cmd, "/maxcount")){
+
+    }
+    else if(!strcmp(cmd, "/mincount")){
+
+    }
+    else if(!strcmp(cmd, "/wc")){
+
+    }
+    else if(!strcmp(cmd, "/exit")){
       deleteQueries(&queries, queriesNo);
       break;
+    }
+    else{
+      fprintf(stderr, "Unknown command, it will be ignored\n");
     }
     deleteQueries(&queries, queriesNo);
   }
