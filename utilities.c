@@ -110,7 +110,7 @@ int readQueries(char ***queries, int *queriesNo){
     return 0;
   else
     ungetc(ch, stdin);
-    
+
   *queriesNo = 2;
   *queries = malloc((*queriesNo)*sizeof(char*));
   while(ch!='\n'){
@@ -152,14 +152,11 @@ void deleteQueries(char ***queries, int queriesNo){
   *queries = NULL;
 }
 
-int free_worker(pid_t *child, char *docfile, int pathsize, char **paths,
-  int num_workers, char **job_to_w, char**w_to_job){
+int free_worker(pid_t *child, char *docfile, int num_workers, char **job_to_w,
+  char**w_to_job){
 
   free(child);  //copy on write, should be lightweight
   free(docfile);
-  for(int i=0; i<pathsize; i++)
-    free(paths[i]);
-  free(paths);
   for (int i=0; i<num_workers; i++){
     free(job_to_w[i]);
     free(w_to_job[i]);
@@ -171,7 +168,10 @@ int free_worker(pid_t *child, char *docfile, int pathsize, char **paths,
 int free_executor(pid_t *child, char *docfile, int pathsize, char **paths,
   int num_workers, char **job_to_w, char**w_to_job, int *fifo_in, int *fifo_out){
 
-  free_worker(child, docfile, pathsize, paths, num_workers, job_to_w, w_to_job);
+  free_worker(child, docfile, num_workers, job_to_w, w_to_job);
+  for(int i=0; i<pathsize; i++)
+    free(paths[i]);
+  free(paths);
   free(fifo_in);
   free(fifo_out);
 }

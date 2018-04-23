@@ -32,17 +32,52 @@ int byte_sum(Registry *documents, int docsize){
   return sum;
 }
 
-int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
-  int fout, fin;
-  int nread = 0, nwrite = 0;
-  int docc = 0, docm = 2;
-  char *abspath = malloc(1);
+int worker_operate(char *job_to_w, char *w_to_job){
+  char **queries = NULL, *cmd = NULL, *abspath = malloc(1);
+  char **paths = NULL;
+  int fout, fin, nread = 0, nwrite = 0, docc = 0, docm = 2;
+  int queriesNo, qlen = 0; //number of queries and temporary length
+  int pathsize;
   Registry *documents = malloc(docm*sizeof(Registry));
   DIR *dir;
   struct dirent *ent;
   TrieNode *trie = NULL;
-  int queriesNo, qlen = 0; //number of queries and temporary length
-  char **queries = NULL, *cmd = NULL;
+
+  if ((fin = open(job_to_w, O_RDONLY)) < 0) {
+    perror ("fifo in open problem") ;
+    exit(1) ;
+  }
+
+  if ((fout = open(w_to_job, O_WRONLY)) < 0){
+    perror ( "fifo out open error " ) ;
+    exit(1) ;
+  }
+
+  //read paths information
+  nread = read(fin, &pathsize, sizeof(int));
+  if (nread < 0) {
+    perror ("problem in reading ");
+    exit(5);
+  }
+  paths = malloc(pathsize*sizeof(char*));
+  for(int i=0; i<pathsize; i++){
+    nread = read(fin, &qlen, sizeof(int));
+    if (nread < 0) {
+      perror ("problem in reading ");
+      exit(5);
+    }
+    paths[i] = malloc(qlen);
+    nread = read(fin, paths[i], qlen);
+    if (nread < 0) {
+      perror ("problem in reading ");
+      exit(5);
+    }
+    else if(!nread){
+      break;
+    }
+    printf("Read path %s\n", paths[i]);
+    fflush(stdout);
+  }
 
   /*printf("Process:%d, pathsize %d\n", getpid(), pathsize);
   printf("Paths:\n");
@@ -95,16 +130,6 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
   }*/
 
   //here
-  if ((fin = open(job_to_w, O_RDONLY)) < 0) {
-    perror ("fifo in open problem") ;
-    exit(1) ;
-  }
-  //sleep(3);
-
-  if ((fout = open(w_to_job, O_WRONLY)) < 0){
-    perror ( "fifo out open error " ) ;
-    exit(1) ;
-  }
 
   while(1){
     nread = read(fin, &queriesNo, sizeof(int));
@@ -152,7 +177,7 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
     else if(!strcmp(cmd, "/maxcount")){
       if(queriesNo > 1){
         char *doc = NULL;   //the path of the doc
-        int no_appear
+        int no_appear;
         maxcount(trie, queries[1], &doc, &no_appear);
       }
       else
@@ -178,12 +203,15 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
     deleteQueries(&queries, queriesNo);
   }
 
-  //close(fin);
+  close(fin);
+  close(fout);
+  for(int i=0; i<pathsize; i++)
+    free(paths[i]);
+  free(paths);
   free(abspath);
   free_documents(&documents, docc);
   delete_trie(trie);
   free(trie);
   printf("Will exit\n");
   return 1;
-  //free(msgbuf);
 }

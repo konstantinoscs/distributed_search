@@ -12,50 +12,33 @@
 #include "worker.h"
 
 int main(int argc, char **argv){
-  char *docfile = NULL, **total_paths=NULL;
-  char **paths=NULL; //for each process this is different
-  char ** job_to_w=NULL, **w_to_job = NULL;
-  int num_workers = 0, total_pathsize=0, pathsize=0, paths_until_now=0;
+  char *docfile = NULL, **job_to_w=NULL, **w_to_job = NULL;
+  int num_workers = 0;
   pid_t *child = NULL;
-  int msgsize = 66;
-  char msgbuf[66]; //= malloc(msgsize);
 
   if(!parse_arguments(argc, argv, &docfile, &num_workers)){
     exit(-1);
   }
   child = malloc(num_workers*sizeof(pid_t));
-  parse_docfile(docfile, &total_paths, &total_pathsize);
-  paths = total_paths;
-  printf("here\n");
   make_fifo_arrays(&job_to_w, &w_to_job, num_workers);
-  //HERE assign number of paths to workers/ ceil(pathsize/workers)?
-  pathsize = ceil((double)total_pathsize/(double)num_workers);
-  printf("Total pathsize/General pathsize: %d/%d\n", total_pathsize, pathsize);
+
   //start forking workers
   for(int i=0; i<num_workers; i++){
-    paths = total_paths + paths_until_now;
     if ((child[i] = fork()) == 0){
       //worker process
-      worker_operate(paths, pathsize, job_to_w[i], w_to_job[i]);
+      worker_operate(job_to_w[i], w_to_job[i]);
       //free everything
-      free_worker(child, docfile, total_pathsize, total_paths, num_workers,
-        job_to_w, w_to_job);
+      free_worker(child, docfile, num_workers, job_to_w, w_to_job);
       printf("child %d exiting!\n", i);
       exit(0);
-    }
-    else{
-      //check if less paths than pathsize are left
-      paths_until_now += pathsize;
-      if(total_pathsize-paths_until_now < pathsize){
-        pathsize = total_pathsize - paths_until_now;
-      }
     }
   }
 
   //variable declaration for father process
   int status, nwrite = 0, nread = 0; //child status and no of bytes written/read
   int *fifo_in = NULL, *fifo_out = NULL;
-  char **queries = NULL;
+  char **queries = NULL, **paths = NULL;
+  int total_pathsize=0, pathsize=0, paths_until_now=0;
   int queriesNo, qlen = 0;
 
   fifo_in = malloc(num_workers*sizeof(int));
@@ -73,6 +56,31 @@ int main(int argc, char **argv){
     if ((fifo_in[i] = open(w_to_job[i], O_RDONLY)) < 0){
       perror ( "fifo in open error " ) ;
       exit(1);
+    }
+  }
+  parse_docfile(docfile, &paths, &total_pathsize);
+  pathsize = ceil((double)total_pathsize/(double)num_workers);
+  printf("Total pathsize/General pathsize: %d/%d\n", total_pathsize, pathsize);
+  for(int i=0; i<num_workers; i++){
+    if((nwrite = write(fifo_out[i], &pathsize, sizeof(int))) == -1){
+      perror("Error in Writing ") ;
+      exit(2);
+    }
+    //write paths to the fifo
+    for(int j=0; j<pathsize; j++){
+      qlen = strlen(paths[j+paths_until_now]) +1;
+      if((nwrite = write(fifo_out[i], &qlen, sizeof(int))) == -1){
+        perror("Error in Writing ") ;
+        exit(2);
+      }
+      if((nwrite = write(fifo_out[i], paths[j+paths_until_now], qlen)) == -1){
+        perror("Error in Writing ") ;
+        exit(2);
+      }
+    }
+    paths_until_now += pathsize;
+    if(total_pathsize-paths_until_now < pathsize){
+      pathsize = total_pathsize - paths_until_now;
     }
   }
 
@@ -107,7 +115,7 @@ int main(int argc, char **argv){
 
     }
     else if(!strcmp(queries[0], "/maxcount")){
-      
+
     }
     else if(!strcmp(queries[0], "/mincount")){
 
@@ -141,6 +149,6 @@ int main(int argc, char **argv){
   }
   for (int i=0; i<num_workers; i++) // kill
         wait(&status);
-  free_executor(child, docfile, total_pathsize, total_paths, num_workers,
+  free_executor(child, docfile, total_pathsize, paths, num_workers,
     job_to_w, w_to_job, fifo_in, fifo_out);
 }
