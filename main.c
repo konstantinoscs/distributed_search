@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -15,9 +16,7 @@ int main(int argc, char **argv){
   char **paths=NULL; //for each process this is different
   char ** job_to_w=NULL, **w_to_job = NULL;
   int num_workers = 0, total_pathsize=0, pathsize=0, paths_until_now=0;
-  int status, nwrite = 0, id; //child status and no of bytes written/read
   pid_t *child = NULL;
-  int *fifo_in = NULL, *fifo_out = NULL;
   int msgsize = 66;
   char msgbuf[66]; //= malloc(msgsize);
 
@@ -36,13 +35,12 @@ int main(int argc, char **argv){
   for(int i=0; i<num_workers; i++){
     paths = total_paths + paths_until_now;
     if ((child[i] = fork()) == 0){
-      id = i;
       //worker process
       worker_operate(paths, pathsize, job_to_w[i], w_to_job[i]);
       //free everything
       free_worker(child, docfile, total_pathsize, total_paths, num_workers,
         job_to_w, w_to_job);
-      printf("child %d exiting!\n", id);
+      printf("child %d exiting!\n", i);
       exit(0);
     }
     else{
@@ -54,15 +52,22 @@ int main(int argc, char **argv){
     }
   }
 
+  //variable declaration for father process
+  int status, nwrite = 0; //child status and no of bytes written/read
+  int *fifo_in = NULL, *fifo_out = NULL;
+  char **queries = NULL;
+  int queriesNo, qlen = 0;
+
   fifo_in = malloc(num_workers*sizeof(int));
   fifo_out = malloc(num_workers*sizeof(int));
 
-  /*for(int i=0; i<num_workers; i++){
+  //open fifos to write to children
+  for(int i=0; i<num_workers; i++){
     if ((fifo_out[i] = open(job_to_w[i], O_WRONLY)) < 0){
       perror ( "fifo out open error " ) ;
       exit(1);
     }
-  }*/
+  }
 
   /*for(int i=0; i<num_workers; i++){
     sprintf(msgbuf, "Hello process %d", i);
@@ -74,6 +79,38 @@ int main(int argc, char **argv){
   printf("Exit\n");
 
   //father process
+  while(1){
+    readQueries(&queries, &queriesNo);
+    printf("Got queries:\n");
+    for(int j=0; j<queriesNo; j++)
+      printf("%s\n", queries[j]);
+    for(int i=0; i<num_workers; i++){
+      //write
+      if((nwrite = write(fifo_out[i], &queriesNo, sizeof(int))) == -1){
+        perror(" Error in Writing ") ;
+        exit(2);
+      }
+    }
+    for(int j=0; j<queriesNo; j++){
+      qlen = strlen(queries[j]) +1; //add space for \0
+      //write len of the query
+      for(int i=0; i<num_workers; i++){
+        if((nwrite = write(fifo_out[i], &qlen, sizeof(int))) == -1){
+          perror(" Error in Writing ") ;
+          exit(2);
+        }
+        if((nwrite = write(fifo_out[i], queries[j], qlen)) == -1){
+          perror(" Error in Writing ") ;
+          exit(2);
+        }
+      }
+    }
+    if(!strcmp(queries[0], "/exit")){
+      deleteQueries(&queries, queriesNo);
+      break;
+    }
+    deleteQueries(&queries, queriesNo);
+  }
   /*while(1){
     scanf("%s", cmd);
     if(!strcmp(cmd, "/search")){
@@ -85,7 +122,7 @@ int main(int argc, char **argv){
         avgdl, k);
       deleteQueries(&queries, queriesNo);
     }
-    else if(!strcmp(cmd, "/df")){
+    else if(!strcmp(cmd, "/wc")){
       if(!readQueries(&queries, &queriesNo)){
         document_frequency(trie);
         continue;
@@ -122,7 +159,7 @@ int main(int argc, char **argv){
     printf("\n");
   }*/
   for (int i=0; i<num_workers; i++){
-    //close(fifo_out[i]);
+    close(fifo_out[i]);
     unlink(job_to_w[i]);
     unlink(w_to_job[i]);
   }

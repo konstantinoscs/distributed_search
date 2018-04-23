@@ -26,15 +26,15 @@ int free_documents(Registry **documents, int docsize){
 
 int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
   int fout, fin;
-  int msgsize = 66;
   int nread = 0;
-  char msgbuf[66]; //= malloc(msgsize);
   int docc = 0, docm = 2;
   char *abspath = malloc(1);
   Registry *documents = malloc(docm*sizeof(Registry));
   DIR *dir;
   struct dirent *ent;
   TrieNode *trie = NULL;
+  int queriesNo, qlen = 0; //number of queries and temporary length
+  char **queries = NULL, *cmd = NULL;
 
   /*printf("Process:%d, pathsize %d\n", getpid(), pathsize);
   printf("Paths:\n");
@@ -87,11 +87,63 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
   }*/
 
   //here
-  /*if ((fin = open(job_to_w, O_RDONLY)) < 0) {
+  if ((fin = open(job_to_w, O_RDONLY)) < 0) {
     perror ("fifo in open problem") ;
     exit(1) ;
-  }*/
+  }
   //sleep(3);
+
+  /*if ((fout = open(w_to_job, O_WRONLY)) < 0){
+    perror ( "fifo out open error " ) ;
+    exit(1) ;
+  }*/
+
+  for (;;) {
+    nread = read(fin, &queriesNo, sizeof(int));
+    if (nread < 0) {
+      perror ("problem in reading ");
+      exit(5);
+    }
+    else if(!nread){
+      break;
+    }
+    printf("Read %d bytes/%d queries\n", nread, queriesNo);
+    fflush(stdout);
+    queries = malloc(queriesNo*sizeof(char*));
+    for(int i=0; i<queriesNo; i++){
+      //read the length
+      nread = read(fin, &qlen, sizeof(int));
+      if (nread < 0) {
+        perror ("problem in reading ");
+        exit(5);
+      }
+      else if(!nread){
+        break;
+      }
+      printf("Read %d qlen\n", qlen);
+      fflush(stdout);
+      //allocate space for each query
+      queries[i] = malloc(qlen);
+      //ready query
+      nread = read(fin, queries[i], qlen);
+      if (nread < 0) {
+        perror ("problem in reading ");
+        exit(5);
+      }
+      else if(!nread){
+        break;
+      }
+      printf("Read query %s\n", queries[i]);
+      fflush(stdout);
+    }
+
+    cmd = queries[0];
+    if(!strcmp(cmd, "/exit")){
+      deleteQueries(&queries, queriesNo);
+      break;
+    }
+    deleteQueries(&queries, queriesNo);
+  }
 
   //close(fin);
   free(abspath);
@@ -100,24 +152,5 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
   free(trie);
   printf("Will exit\n");
   return 1;
-
-  /*if ((fout = open(w_to_job, O_WRONLY)) < 0){
-    perror ( "fifo out open error " ) ;
-    exit(1) ;
-  }*/
-
-  for (;;) {
-    nread = read(fin, msgbuf, msgsize);
-    printf("Read %d\n", nread);
-    if (nread < 0) {
-      perror ("problem in reading ");
-      exit(5);
-    }
-    else if(!nread){
-      break;
-    }
-    printf("\nMessage Received : %s\n" , msgbuf);
-    fflush(stdout);
-  }
   //free(msgbuf);
 }

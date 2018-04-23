@@ -101,6 +101,57 @@ int make_fifo_arrays(char ***job_to_w, char***w_to_job, int num_workers){
   }
 }
 
+int readQueries(char ***queries, int *queriesNo){
+  int ch = ' ';
+  int wordm=0, wordc=0;   //current query memory and query counter
+  int queriesc = 0;
+
+  if((ch =getchar()) == '\n')
+    return 0;
+  else
+    ungetc(ch, stdin);
+    
+  *queriesNo = 2;
+  *queries = malloc((*queriesNo)*sizeof(char*));
+  while(ch!='\n'){
+    wordm = 2;    //start from 1 character (plus '\0')
+    wordc = 0;
+    if(queriesc == 12){
+      while((ch=getchar()) !='\n') continue;
+      break;
+    }
+    if(queriesc == *queriesNo){
+      (*queriesNo) *=2;
+      *queries = realloc(*queries, (*queriesNo)*sizeof(char*));
+    }
+    (*queries)[queriesc] = malloc(wordm);
+    while((ch=getchar())!= ' ' && ch!='\n'){
+      if(wordc+1 == wordm){     //chech if reallocation needed
+        wordm *= 2;
+        (*queries)[queriesc] = realloc((*queries)[queriesc], wordm);
+      }
+      (*queries)[queriesc][wordc++] = ch;
+    }
+    (*queries)[queriesc][wordc] ='\0';
+    (*queries)[queriesc] = realloc((*queries)[queriesc], wordc+1); //shrink tf
+    queriesc++;
+  }
+  *queries = realloc(*queries, queriesc*sizeof(char*));
+  *queriesNo = queriesc;
+  return 1;
+}
+
+void deleteQueries(char ***queries, int queriesNo){
+  if(*queries == NULL){
+    fprintf(stderr, "NULL pointer given to free\n");
+    return;
+  }
+  for(int i=0; i<queriesNo; i++)
+    free((*queries)[i]);
+  free(*queries);
+  *queries = NULL;
+}
+
 int free_worker(pid_t *child, char *docfile, int pathsize, char **paths,
   int num_workers, char **job_to_w, char**w_to_job){
 
@@ -122,5 +173,5 @@ int free_executor(pid_t *child, char *docfile, int pathsize, char **paths,
 
   free_worker(child, docfile, pathsize, paths, num_workers, job_to_w, w_to_job);
   free(fifo_in);
-  free(fifo_out);  
+  free(fifo_out);
 }
