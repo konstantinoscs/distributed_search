@@ -146,47 +146,6 @@ TrieNode* makeTrie(Registry *documents, int docsize){
   return trie;
 }
 
-/*TrieNode* makeTrie(char **documents, int docsize){
-  TrieNode * trie = malloc(sizeof(TrieNode));
-  char *word = NULL, *subs = NULL, ch= ' ';
-  size_t len = 0, j=0;
-  init_trie(trie, documents[0][0]);
-  for(int i=0; i<docsize; i++){
-    ch = ' ';
-    subs = documents[i];
-    while(isspace(subs[0]))   //set substring to new word
-      subs++;
-    while(ch!= '\0'){   //start breaking each document in words
-      len=0;
-      //count the length of each word
-      while((ch = subs[len]) != ' ' && ch !='\t' && ch != '\0')
-        len++;
-      //copy the word in variable
-      word = subs;
-      if(trie->letter > word[0])     //swap root to maintain order (& law)
-        swap_root(&trie, word[0]);
-      //insert to trie
-      //printf("Klisi\n");
-      insert_in_trie(trie, word, 0, len, i);
-      subs += len;
-      if(ch != '\0')           //if it's the end of the document don't search
-        while(isspace(ch=subs[0]))   //set substring to new word
-          subs++;
-    }
-  }
-  return trie;
-}*/
-
-/*void document_frequency(TrieNode *node){
-  if(node->list !=NULL){
-    printf("%s %d\n", node->list->word, calculate_doc_appearances(node->list));
-  }
-  if(node->down!=NULL)
-    document_frequency(node->down);
-  if(node->next!=NULL)
-    document_frequency(node->next);
-}*/
-
 TrieNode* find_word(TrieNode *node, char* word){
   TrieNode *current = node;
   size_t pos = 0, len = strlen(word);
@@ -204,33 +163,10 @@ TrieNode* find_word(TrieNode *node, char* word){
   return current;
 }
 
-/*int term_frequency(TrieNode *node, char *word, int docno){
-  TrieNode *current = find_word(node, word);
-  if(current == NULL)
-    return 0;
-  return caclulate_specific_frequency(current->list, docno); //this is tf
+void maxcount(TrieNode *node, char *word, char **doc, int *no_appear){
+  TrieNode *wordnode = find_word(node, word);
 }
 
-int document_frequency_word(TrieNode *node, char *word){
-  TrieNode *current = find_word(node, word);
-  if(current == NULL)
-    return 0;
-  return calculate_frequency(current->list);
+void mincount(TrieNode *node, char *word, char **doc, int *no_appear){
+  TrieNode *wordnode = find_word(node, word);
 }
-
-int document_appearances(TrieNode *node, char *word){
-  TrieNode *current = find_word(node, word);
-  if(current == NULL)
-    return 0;
-  return calculate_doc_appearances(current->list);    //this is n(qi)
-}
-
-void get_word_docid(TrieNode *node, char *word, int **ids, int *idsize){
-  TrieNode *current = find_word(node, word);
-  if(current == NULL){
-    (*ids) = NULL;
-    (*idsize) = 0;
-  }
-  else
-    get_all_docid(current->list, ids, idsize);
-}*/

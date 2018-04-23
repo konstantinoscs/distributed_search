@@ -76,15 +76,6 @@ int main(int argc, char **argv){
     }
   }
 
-  /*for(int i=0; i<num_workers; i++){
-    sprintf(msgbuf, "Hello process %d", i);
-    if((nwrite = write (fifo_out[i], msgbuf, msgsize) ) == -1){
-      perror(" Error in Writing ") ;
-      exit(2);
-    }
-  }*/
-  printf("Exit\n");
-
   //father process
   while(1){
     readQueries(&queries, &queriesNo);
@@ -116,7 +107,7 @@ int main(int argc, char **argv){
 
     }
     else if(!strcmp(queries[0], "/maxcount")){
-
+      
     }
     else if(!strcmp(queries[0], "/mincount")){
 
@@ -142,59 +133,12 @@ int main(int argc, char **argv){
     }
     deleteQueries(&queries, queriesNo);
   }
-  /*while(1){
-    scanf("%s", cmd);
-    if(!strcmp(cmd, "/search")){
-      if(!readQueries(&queries, &queriesNo)){
-        fprintf(stderr, "No queries given!\n");
-        continue;
-      }
-      search(trie, documents, doc_length, docsize, queries, queriesNo, k1, b,
-        avgdl, k);
-      deleteQueries(&queries, queriesNo);
-    }
-    else if(!strcmp(cmd, "/wc")){
-      if(!readQueries(&queries, &queriesNo)){
-        document_frequency(trie);
-        continue;
-      }
-      else if(queriesNo!=1){    //maybe support multiple words
-        fprintf(stderr, "Wrong queries given!\n");
-      }
-      else{
-        int df = document_appearances(trie, queries[0]);
-        printf("%s %d\n", queries[0], df);
-      }
-      deleteQueries(&queries, queriesNo);
-    }
-    else if(!strcmp(cmd, "/tf")){
-      if(!readQueries(&queries, &queriesNo)){
-        fprintf(stderr, "No queries given!\n");
-        continue;
-      }
-      else if(queriesNo!=2){
-        fprintf(stderr, "Wrong queries given!\n");
-      }
-      else{
-        int termf = term_frequency(trie, queries[1], atoi(queries[0]));
-        printf("%d %s %d\n", atoi(queries[0]), queries[1], termf);
-      }
-      deleteQueries(&queries, queriesNo);
-    }
-    else if(!strcmp(cmd, "/exit")){
-      break;
-    }
-    else{
-      fprintf(stderr, "Unknown command, try again\n");
-    }
-    printf("\n");
-  }*/
+
   for (int i=0; i<num_workers; i++){
     close(fifo_out[i]);
     unlink(job_to_w[i]);
     unlink(w_to_job[i]);
   }
-
   for (int i=0; i<num_workers; i++) // kill
         wait(&status);
   free_executor(child, docfile, total_pathsize, total_paths, num_workers,

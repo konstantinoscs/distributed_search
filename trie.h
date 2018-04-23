@@ -20,16 +20,9 @@ void print_trie(TrieNode *node);
 void delete_trie(TrieNode *node);
 //constructs trie with all words in the documents
 TrieNode* makeTrie(Registry *documents, int docsize);
-//prints the document frequency for all words in the trie
-void document_frequency(TrieNode *node);
-//returns the term frequency of a word in documents with id docno
-int term_frequency(TrieNode *node, char *word, int docno);
-//returns all appearances of a word in all documents
-int document_frequency_word(TrieNode *node, char *word);
-//returns the number of documents a word appears in
-int document_appearances(TrieNode *node, char *word);
-//stores all the document ids of a word in ids
-void get_word_docid(TrieNode *node, char *word, int **ids, int *idsize);
+
+void maxcount(TrieNode *node, char *word, char **doc, int *no_appear);
+void mincount(TrieNode *node, char *word, char **doc, int *no_appear);
 
 
 #endif

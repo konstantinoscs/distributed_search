@@ -150,7 +150,13 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
 
     }
     else if(!strcmp(cmd, "/maxcount")){
-
+      if(queriesNo > 1){
+        char *doc = NULL;   //the path of the doc
+        int no_appear
+        maxcount(trie, queries[1], &doc, &no_appear);
+      }
+      else
+        fprintf(stderr, "No word was given for maxcount\n");
     }
     else if(!strcmp(cmd, "/mincount")){
 
