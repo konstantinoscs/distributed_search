@@ -24,9 +24,17 @@ int free_documents(Registry **documents, int docsize){
   *documents = NULL;
 }
 
+int byte_sum(Registry *documents, int docsize){
+  int sum = 0;
+  for(int i=0; i<docsize; i++)
+    for(int j=0; j<documents[i].lines; j++)
+      sum +=strlen(documents[i].text[j]);
+  return sum;
+}
+
 int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
   int fout, fin;
-  int nread = 0;
+  int nread = 0, nwrite = 0;
   int docc = 0, docm = 2;
   char *abspath = malloc(1);
   Registry *documents = malloc(docm*sizeof(Registry));
@@ -93,10 +101,10 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
   }
   //sleep(3);
 
-  /*if ((fout = open(w_to_job, O_WRONLY)) < 0){
+  if ((fout = open(w_to_job, O_WRONLY)) < 0){
     perror ( "fifo out open error " ) ;
     exit(1) ;
-  }*/
+  }
 
   while(1){
     nread = read(fin, &queriesNo, sizeof(int));
@@ -148,7 +156,11 @@ int worker_operate(char **paths, int pathsize, char *job_to_w, char *w_to_job){
 
     }
     else if(!strcmp(cmd, "/wc")){
-
+      int sum = byte_sum(documents, docc);
+      if((nwrite = write(fout, &sum, sizeof(int))) == -1){
+        perror(" Error in Writing ") ;
+        exit(2);
+      }
     }
     else if(!strcmp(cmd, "/exit")){
       deleteQueries(&queries, queriesNo);

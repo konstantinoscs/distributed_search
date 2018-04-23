@@ -53,7 +53,7 @@ int main(int argc, char **argv){
   }
 
   //variable declaration for father process
-  int status, nwrite = 0; //child status and no of bytes written/read
+  int status, nwrite = 0, nread = 0; //child status and no of bytes written/read
   int *fifo_in = NULL, *fifo_out = NULL;
   char **queries = NULL;
   int queriesNo, qlen = 0;
@@ -65,6 +65,13 @@ int main(int argc, char **argv){
   for(int i=0; i<num_workers; i++){
     if ((fifo_out[i] = open(job_to_w[i], O_WRONLY)) < 0){
       perror ( "fifo out open error " ) ;
+      exit(1);
+    }
+  }
+
+  for(int i=0; i<num_workers; i++){
+    if ((fifo_in[i] = open(w_to_job[i], O_RDONLY)) < 0){
+      perror ( "fifo in open error " ) ;
       exit(1);
     }
   }
@@ -105,9 +112,33 @@ int main(int argc, char **argv){
         }
       }
     }
-    if(!strcmp(queries[0], "/exit")){
+    if(!strcmp(queries[0], "/search")){
+
+    }
+    else if(!strcmp(queries[0], "/maxcount")){
+
+    }
+    else if(!strcmp(queries[0], "/mincount")){
+
+    }
+    else if(!strcmp(queries[0], "/wc")){
+      int tsum = 0, sum = 0;
+      for(int i=0; i<num_workers; i++){
+        nread = read(fifo_in[i], &tsum, sizeof(int));
+        if (nread < 0) {
+          perror ("problem in reading ");
+          exit(5);
+        }
+        sum += tsum;
+      }
+      printf("Total number of bytes in all files: %d\n", sum);
+    }
+    else if(!strcmp(queries[0], "/exit")){
       deleteQueries(&queries, queriesNo);
       break;
+    }
+    else{
+      fprintf(stderr, "Unknown command, it will be ignored\n");
     }
     deleteQueries(&queries, queriesNo);
   }
