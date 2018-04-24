@@ -84,8 +84,6 @@ int make_fifo_arrays(char ***job_to_w, char***w_to_job, int num_workers){
     sprintf((*w_to_job)[i], "wtj%d", i);
   }
   for(int i=0; i<num_workers; i++){
-    printf("%s\n", (*job_to_w)[i]);
-    printf("%s\n", (*w_to_job)[i]);
     if (mkfifo((*job_to_w)[i], 0666) == -1 ) {
       if (errno != EEXIST ) {
         perror ( " receiver : mkfifo " ) ;

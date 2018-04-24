@@ -37,11 +37,12 @@ int worker_operate(char *job_to_w, char *w_to_job){
   char **paths = NULL;
   int fout, fin, nread = 0, nwrite = 0, docc = 0, docm = 2;
   int queriesNo, qlen = 0; //number of queries and temporary length
-  int pathsize;
+  int pathsize, pid = getpid();
   Registry *documents = malloc(docm*sizeof(Registry));
   DIR *dir;
   struct dirent *ent;
   TrieNode *trie = NULL;
+  FILE *logfile = NULL;
 
   if ((fin = open(job_to_w, O_RDONLY)) < 0) {
     perror ("fifo in open problem") ;
@@ -75,8 +76,8 @@ int worker_operate(char *job_to_w, char *w_to_job){
     else if(!nread){
       break;
     }
-    printf("Read path %s\n", paths[i]);
-    fflush(stdout);
+    //printf("Read path %s\n", paths[i]);
+    //fflush(stdout);
   }
 
   /*printf("Process:%d, pathsize %d\n", getpid(), pathsize);
@@ -98,14 +99,11 @@ int worker_operate(char *job_to_w, char *w_to_job){
           documents = realloc(documents, docm*sizeof(Registry));
         }
         //initialize new registry
-
-        //printf("Before\n");
-        //printf ("%s\n", ent->d_name);
         abspath = realloc(abspath, strlen(paths[i])+strlen(ent->d_name)+2);
         strcpy(abspath, paths[i]);
         strcat(abspath, "/");
         strcat(abspath, ent->d_name);
-        printf("abspath: %s\n", abspath);
+        //printf("abspath: %s\n", abspath);
         documents[docc].path = malloc(strlen(abspath)+1);
         strcpy(documents[docc].path, abspath);
         parse_docfile(documents[docc].path, &(documents[docc].text), &(documents[docc].lines));
@@ -121,14 +119,6 @@ int worker_operate(char *job_to_w, char *w_to_job){
   }
   //here make trie and insert
   trie = makeTrie(documents, docc);
-
-  /*for(int i=0; i<docc; i++){
-    printf("File: %s\n", documents[i].path);
-    for(int j=0; j<documents[i].lines; j++){
-      printf("%s\n", documents[i].text[j]);
-    }
-  }*/
-
   //here
 
   while(1){
@@ -179,17 +169,36 @@ int worker_operate(char *job_to_w, char *w_to_job){
         char *doc = NULL;   //the path of the doc
         int no_appear;
         maxcount(trie, queries[1], &doc, &no_appear);
+        qlen = strlen(doc) +1;
+        if((nwrite = write(fout, &qlen, sizeof(int))) == -1){
+          perror("Error in Writing ") ;
+          exit(2);
+        }
+        if((nwrite = write(fout, doc, qlen)) == -1){
+          perror("Error in Writing ") ;
+          exit(2);
+        }
+        if((nwrite = write(fout, &no_appear, sizeof(int))) == -1){
+          perror("Error in Writing ") ;
+          exit(2);
+        }
       }
       else
         fprintf(stderr, "No word was given for maxcount\n");
     }
     else if(!strcmp(cmd, "/mincount")){
-
+      if(queriesNo > 1){
+        char *doc = NULL;   //the path of the doc
+        int no_appear;
+        mincount(trie, queries[1], &doc, &no_appear);
+      }
+      else
+        fprintf(stderr, "No word was given for mincount\n");
     }
     else if(!strcmp(cmd, "/wc")){
       int sum = byte_sum(documents, docc);
       if((nwrite = write(fout, &sum, sizeof(int))) == -1){
-        perror(" Error in Writing ") ;
+        perror("Error in Writing ") ;
         exit(2);
       }
     }

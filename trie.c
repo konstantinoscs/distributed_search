@@ -165,8 +165,22 @@ TrieNode* find_word(TrieNode *node, char* word){
 
 void maxcount(TrieNode *node, char *word, char **doc, int *no_appear){
   TrieNode *wordnode = find_word(node, word);
+  if(wordnode == NULL || wordnode->list == NULL){
+    *doc = NULL;
+    *no_appear = -1;
+  }
+  else{
+    find_maxcount(wordnode->list, doc, no_appear);
+  }
 }
 
 void mincount(TrieNode *node, char *word, char **doc, int *no_appear){
   TrieNode *wordnode = find_word(node, word);
+  if(wordnode == NULL || wordnode->list == NULL){
+    *doc = NULL;
+    *no_appear = -1;
+  }
+  else{
+    find_mincount(wordnode->list, doc, no_appear);
+  }
 }

@@ -115,7 +115,43 @@ int main(int argc, char **argv){
 
     }
     else if(!strcmp(queries[0], "/maxcount")){
-
+      if(queriesNo > 1){
+        int max_appears = 0, appears = 0;
+        char *doc = malloc(1), *maxdoc = malloc(1);
+        for(int i=0; i<num_workers; i++){
+          //read directory string length
+          nread = read(fifo_in[i], &qlen, sizeof(int));
+          if (nread < 0) {
+            perror ("problem in reading ");
+            exit(5);
+          }
+          doc = realloc(doc, qlen);
+          //read directory path
+          nread = read(fifo_in[i], doc, qlen);
+          if (nread < 0) {
+            perror ("problem in reading ");
+            exit(5);
+          }
+          //read appearances of word
+          nread = read(fifo_in[i], &appears, sizeof(int));
+          if (nread < 0) {
+            perror ("problem in reading ");
+            exit(5);
+          }
+          printf("Parent Appearances %d, path %s\n", appears, doc);
+          if(appears > max_appears){
+            max_appears = appears;
+            maxdoc = realloc(maxdoc, qlen);
+            strcpy(maxdoc, doc);
+          }
+        }
+        printf("Parent max Appearances %d, path %s\n", max_appears, maxdoc);
+        free(doc);
+        free(maxdoc);
+      }
+      else{
+        fprintf(stderr, "Parent: no word was given for maxcount\n");
+      }
     }
     else if(!strcmp(queries[0], "/mincount")){
 
@@ -144,6 +180,7 @@ int main(int argc, char **argv){
 
   for (int i=0; i<num_workers; i++){
     close(fifo_out[i]);
+    close(fifo_in[i]);
     unlink(job_to_w[i]);
     unlink(w_to_job[i]);
   }

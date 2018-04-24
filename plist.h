@@ -17,5 +17,7 @@ typedef struct Plist{
 void delete_doc(DocInfo *frequency);
 void search_n_update(Plist *list, char *path, int line);
 void delete_list(Plist *list);
+void find_maxcount(Plist *list, char **doc, int *no_appear);
+void find_mincount(Plist *list, char **doc, int *no_appear);
 
 #endif
