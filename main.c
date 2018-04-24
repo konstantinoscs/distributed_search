@@ -8,6 +8,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "parent.h"
 #include "utilities.h"
 #include "worker.h"
 
@@ -115,46 +116,10 @@ int main(int argc, char **argv){
 
     }
     else if(!strcmp(queries[0], "/maxcount")){
-      if(queriesNo > 1){
-        int max_appears = 0, appears = 0;
-        char *doc = malloc(1), *maxdoc = malloc(1);
-        for(int i=0; i<num_workers; i++){
-          //read directory string length
-          nread = read(fifo_in[i], &qlen, sizeof(int));
-          if (nread < 0) {
-            perror ("problem in reading ");
-            exit(5);
-          }
-          doc = realloc(doc, qlen);
-          //read directory path
-          nread = read(fifo_in[i], doc, qlen);
-          if (nread < 0) {
-            perror ("problem in reading ");
-            exit(5);
-          }
-          //read appearances of word
-          nread = read(fifo_in[i], &appears, sizeof(int));
-          if (nread < 0) {
-            perror ("problem in reading ");
-            exit(5);
-          }
-          printf("Parent Appearances %d, path %s\n", appears, doc);
-          if(appears > max_appears){
-            max_appears = appears;
-            maxdoc = realloc(maxdoc, qlen);
-            strcpy(maxdoc, doc);
-          }
-        }
-        printf("Parent max Appearances %d, path %s\n", max_appears, maxdoc);
-        free(doc);
-        free(maxdoc);
-      }
-      else{
-        fprintf(stderr, "Parent: no word was given for maxcount\n");
-      }
+      parent_maxcount(queriesNo, num_workers, fifo_in, fifo_out);
     }
     else if(!strcmp(queries[0], "/mincount")){
-
+      parent_mincount(queriesNo, num_workers, fifo_in, fifo_out);
     }
     else if(!strcmp(queries[0], "/wc")){
       int tsum = 0, sum = 0;

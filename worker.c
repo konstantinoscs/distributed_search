@@ -191,6 +191,19 @@ int worker_operate(char *job_to_w, char *w_to_job){
         char *doc = NULL;   //the path of the doc
         int no_appear;
         mincount(trie, queries[1], &doc, &no_appear);
+        qlen = strlen(doc) +1;
+        if((nwrite = write(fout, &qlen, sizeof(int))) == -1){
+          perror("Error in Writing ") ;
+          exit(2);
+        }
+        if((nwrite = write(fout, doc, qlen)) == -1){
+          perror("Error in Writing ") ;
+          exit(2);
+        }
+        if((nwrite = write(fout, &no_appear, sizeof(int))) == -1){
+          perror("Error in Writing ") ;
+          exit(2);
+        }
       }
       else
         fprintf(stderr, "No word was given for mincount\n");
