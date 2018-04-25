@@ -32,10 +32,10 @@ void child_death(int sig){
   }
 }
 
-void remake_fifos(int *fifo_in, int *fifo_out, char *job_to_w, char *w_to_job){
+void remake_fifos(int fifo_in, int fifo_out, char *job_to_w, char *w_to_job){
   //destroy existing fifos
-  close(*fifo_out);
-  close(*fifo_in);
+  close(fifo_out);
+  close(fifo_in);
   unlink(job_to_w);
   unlink(w_to_job);
   //make new fifo
@@ -51,22 +51,6 @@ void remake_fifos(int *fifo_in, int *fifo_out, char *job_to_w, char *w_to_job){
       exit(6);
     }
   }
-  /*if (((*fifo_out) = open(job_to_w, O_WRONLY)) < 0){
-    perror( "fifo out open error ");
-    exit(1);
-  }
-  if(((*fin) = open(job_to_w, O_RDONLY)) < 0){
-    perror ( "fifo in open error ");
-    exit(1);
-  }
-  if (((*fout) = open(w_to_job, O_WRONLY)) < 0){
-    perror( "fifo out open error ");
-    exit(1);
-  }
-  if(((*fifo_in) = open(w_to_job, O_RDONLY)) < 0){
-    perror ( "fifo in open error ");
-    exit(1);
-  }*/
 }
 
 void child_spawn(pid_t *child, int num_workers, int total_pathsize, char** paths,
@@ -83,10 +67,10 @@ void child_spawn(pid_t *child, int num_workers, int total_pathsize, char** paths
         int fin;
         int fout;
         printf("Will remake fifos\n");
-        remake_fifos(&fifo_in[i], &fifo_out[i], &fin, &fout, job_to_w[i], w_to_job[i]);
+        remake_fifos(fifo_in[i], fifo_out[i], job_to_w[i], w_to_job[i]);
         printf("Remade fifos\n");
         //fork here
-        if((child[i]==fork()) == 0){
+        if((child[i]=fork()) == 0){
           //keep only the name of the correct fifos
           char *jtw = malloc(strlen(job_to_w[i])+1);
           strcpy(jtw, job_to_w[i]);
@@ -94,20 +78,32 @@ void child_spawn(pid_t *child, int num_workers, int total_pathsize, char** paths
           strcpy(wtj, w_to_job[i]);
           //close all the fifos except those of the forked process
           for (int j=0; j<num_workers; j++){
-            if(i == j) continue;
+            if(j==i) continue;
             close(fifo_out[j]);
             close(fifo_in[j]);
           }
           //free memory inherrited from father
           free_executor(child, docfile, pathsize, paths, num_workers, job_to_w,
             w_to_job, fifo_in, fifo_out);
-          worker_operate(jtw, wtj, 1, fin, fout);
+          printf("i:%d, fifo in: %s, fifo out: %s\n", i, jtw, wtj);
+          worker_operate(jtw, wtj, 0, fin, fout);
           free(jtw);
           free(wtj);
+          free(dead_child);
           exit(0);
         }
         else{
-          printf("parent tries to write");
+          if((fifo_out[i] = open(job_to_w[i], O_WRONLY)) < 0){
+            perror ("fifo out open error") ;
+            exit(1);
+          }
+          printf("Parent opened fifo\n");
+          if((fifo_in[i] = open(w_to_job[i], O_RDONLY)) < 0){
+            perror ("fifo in parent open error ");
+            exit(1);
+          }
+
+          printf("parent tries to write\n");
           if((nwrite = write(fifo_out[i], &pathsize, sizeof(int))) == -1){
             perror("Error in Writing ") ;
             exit(2);
@@ -367,4 +363,5 @@ int parent_operate(int num_workers, pid_t *child, char *docfile, char **job_to_w
         wait(&status);
   free_executor(child, docfile, total_pathsize, paths, num_workers,
     job_to_w, w_to_job, fifo_in, fifo_out);
+  free(dead_child);
 }
