@@ -32,7 +32,8 @@ int byte_sum(Registry *documents, int docsize){
   return sum;
 }
 
-int worker_operate(char *job_to_w, char *w_to_job){
+int worker_operate(char *job_to_w, char *w_to_job, int openfifo, int fifo_in,
+  int fifo_out){
   char **queries = NULL, *cmd = NULL, *abspath = malloc(1);
   char **paths = NULL;
   int fout, fin, nread = 0, nwrite = 0, docc = 0, docm = 2;
@@ -44,14 +45,20 @@ int worker_operate(char *job_to_w, char *w_to_job){
   TrieNode *trie = NULL;
   FILE *logfile = NULL;
 
-  if ((fin = open(job_to_w, O_RDONLY)) < 0) {
-    perror ("fifo in open problem") ;
-    exit(1) ;
+  if(openfifo){
+    fin = fifo_in;
+    fout = fifo_out;
   }
+  else{
+    if ((fin = open(job_to_w, O_RDONLY)) < 0) {
+      perror ("fifo in open problem") ;
+      exit(1) ;
+    }
 
-  if ((fout = open(w_to_job, O_WRONLY)) < 0){
-    perror ( "fifo out open error " ) ;
-    exit(1) ;
+    if ((fout = open(w_to_job, O_WRONLY)) < 0){
+      perror ( "fifo out open error " ) ;
+      exit(1) ;
+    }
   }
 
   //read paths information
@@ -80,12 +87,12 @@ int worker_operate(char *job_to_w, char *w_to_job){
     //fflush(stdout);
   }
 
-  /*printf("Process:%d, pathsize %d\n", getpid(), pathsize);
+  printf("Process:%d, pathsize %d\n", getpid(), pathsize);
   printf("Paths:\n");
   for(int i=0; i<pathsize; i++)
     printf("Process:%d path %s\n", getpid(), paths[i]);
   printf("Process:%d fifo %s\n", getpid(), job_to_w);
-  printf("Process:%d fifo %s\n", getpid(), w_to_job);*/
+  printf("Process:%d fifo %s\n", getpid(), w_to_job);
   //here load everything to memory - trie
   for(int i=0; i<pathsize; i++){
     //printf("Testing path:%s\n", paths[i]);
