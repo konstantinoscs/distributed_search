@@ -54,7 +54,8 @@ void remake_fifos(int fifo_in, int fifo_out, char *job_to_w, char *w_to_job){
 }
 
 void child_spawn(pid_t *child, int num_workers, int total_pathsize, char** paths,
-  char** job_to_w, char **w_to_job, int *fifo_in, int *fifo_out, char *docfile){
+  char** job_to_w, char **w_to_job, int *fifo_in, int *fifo_out, char *docfile,
+  char ***queries, int queriesNo){
 
   int paths_until_now=0, nwrite, qlen;
   int pathsize = ceil((double)total_pathsize/(double)num_workers);
@@ -78,15 +79,16 @@ void child_spawn(pid_t *child, int num_workers, int total_pathsize, char** paths
           strcpy(wtj, w_to_job[i]);
           //close all the fifos except those of the forked process
           for (int j=0; j<num_workers; j++){
-            if(j==i) continue;
+            //if(j==i) continue;
             close(fifo_out[j]);
             close(fifo_in[j]);
           }
           //free memory inherrited from father
-          free_executor(child, docfile, pathsize, paths, num_workers, job_to_w,
+          deleteQueries(queries, queriesNo);
+          free_executor(child, docfile, total_pathsize, paths, num_workers, job_to_w,
             w_to_job, fifo_in, fifo_out);
           printf("i:%d, fifo in: %s, fifo out: %s\n", i, jtw, wtj);
-          worker_operate(jtw, wtj, 0, fin, fout);
+          worker_operate(jtw, wtj);
           free(jtw);
           free(wtj);
           free(dead_child);
@@ -298,7 +300,7 @@ int parent_operate(int num_workers, pid_t *child, char *docfile, char **job_to_w
     if(child_exit){
       printf("Dead children!\n");
       child_spawn(child, num_workers, total_pathsize, paths, job_to_w, w_to_job,
-        fifo_in, fifo_out, docfile);
+        fifo_in, fifo_out, docfile, &queries, queriesNo);
       child_exit = 0;
     }
     for(int i=0; i<num_workers; i++){

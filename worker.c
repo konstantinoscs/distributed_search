@@ -32,8 +32,7 @@ int byte_sum(Registry *documents, int docsize){
   return sum;
 }
 
-int worker_operate(char *job_to_w, char *w_to_job, int openfifo, int fifo_in,
-  int fifo_out){
+int worker_operate(char *job_to_w, char *w_to_job){
   char **queries = NULL, *cmd = NULL, *abspath = malloc(1);
   char **paths = NULL;
   int fout, fin, nread = 0, nwrite = 0, docc = 0, docm = 2;
@@ -45,20 +44,14 @@ int worker_operate(char *job_to_w, char *w_to_job, int openfifo, int fifo_in,
   TrieNode *trie = NULL;
   FILE *logfile = NULL;
   printf("Worker operate starts!\n");
-  if(openfifo){
-    fin = fifo_in;
-    fout = fifo_out;
+  
+  if ((fin = open(job_to_w, O_RDONLY)) < 0) {
+    perror ("fifo in child open problem") ;
+    exit(1) ;
   }
-  else{
-    if ((fin = open(job_to_w, O_RDONLY)) < 0) {
-      perror ("fifo in child open problem") ;
-      exit(1) ;
-    }
-
-    if ((fout = open(w_to_job, O_WRONLY)) < 0){
-      perror ("fifo out open error ") ;
-      exit(1) ;
-    }
+  if ((fout = open(w_to_job, O_WRONLY)) < 0){
+    perror ("fifo out open error ") ;
+    exit(1) ;
   }
 
   //read paths information
@@ -223,6 +216,7 @@ int worker_operate(char *job_to_w, char *w_to_job, int openfifo, int fifo_in,
       }
     }
     else if(!strcmp(cmd, "/exit")){
+      printf("caought exit \n");
       deleteQueries(&queries, queriesNo);
       break;
     }

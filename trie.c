@@ -79,25 +79,6 @@ void swap_root(TrieNode **root, char ch){
   *root = newroot;
 }
 
-//recursively (sort of) print trie
-/*void print_trie(TrieNode *node){
-  printf("%c ", node->letter);
-  if(node->list !=NULL){
-    printf(" word here: %s ", node->list->word);
-    print_list(node->list);
-    printf(" ");
-  }
-  if(node->down!=NULL){
-    printf("down: ");
-    print_trie(node->down);
-  }
-  else printf("\n");
-  if(node->next!=NULL){
-    printf("Next: ");
-    print_trie(node->next);
-  }
-}*/
-
 void delete_trie(TrieNode *node){
   if(node->down!=NULL){
     delete_trie(node->down);

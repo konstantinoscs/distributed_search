@@ -25,7 +25,7 @@ int main(int argc, char **argv){
   for(int i=0; i<num_workers; i++){
     if ((child[i] = fork()) == 0){
       //worker process
-      worker_operate(job_to_w[i], w_to_job[i], 0, -1, -1);
+      worker_operate(job_to_w[i], w_to_job[i]);
       //free everything
       free_worker(child, docfile, num_workers, job_to_w, w_to_job);
       printf("child %d exiting!\n", i);
