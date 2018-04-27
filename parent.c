@@ -294,7 +294,7 @@ int parent_operate(int num_workers, pid_t *child, char *docfile, char **job_to_w
   }
   //father process
   while(1){
-    readQueries(&queries, &queriesNo);
+    while(!readQueries(&queries, &queriesNo)) continue;
     printf("Got queries:\n");
     for(int j=0; j<queriesNo; j++)
       printf("%s\n", queries[j]);
@@ -338,7 +338,7 @@ int parent_operate(int num_workers, pid_t *child, char *docfile, char **job_to_w
       }
     }
     if(!strcmp(queries[0], "/search")){
-
+      printf("search detected\n");
     }
     else if(!strcmp(queries[0], "/maxcount")){
       parent_maxcount(queriesNo, num_workers, fifo_in, fifo_out);

@@ -13,6 +13,8 @@
 #include "trie.h"
 #include "utilities.h"
 
+int writeflag = 1;
+
 int free_documents(Registry **documents, int docsize){
   for(int i=0; i<docsize; i++){
     free((*documents)[i].path);
@@ -169,9 +171,58 @@ int worker_operate(char *job_to_w, char *w_to_job){
 
     cmd = queries[0];
     if(!strcmp(cmd, "/search")){
+      writeflag = 1;
       Result **results = malloc((queriesNo-3)*sizeof(Result*));
-      int * results_no = malloc((queriesNo-3)*sizeof(int));
+      int *results_no = malloc((queriesNo-3)*sizeof(int));
       search(results, results_no, trie, queries+1, queriesNo-3, documents);
+      if(write){  //in case we had a timeout
+        for(int i=0; i<queriesNo-3; i++){
+          printf("Results for query: %s\n", queries[i]);
+          //write number of the documents
+          if((nwrite = write(fout, results_no+i, sizeof(int))) == -1){
+            perror("Error in Writing ");
+            exit(2);
+          }
+          for(int j=0; j<results_no[i]; j++){
+            //write doc path
+            qlen = strlen(results[i][j].doc) +1;
+            if((nwrite = write(fout, &qlen, sizeof(int))) == -1){
+              perror("Error in Writing ");
+              exit(2);
+            }
+            printf("Doc: %s\n", results[i][j].doc);
+            if((nwrite = write(fout, results[i][j].doc, qlen)) == -1){
+              perror("Error in Writing ");
+              exit(2);
+            }
+            //write number of lines
+            if((nwrite = write(fout, &results[i][j].size, sizeof(int))) == -1){
+              perror("Error in Writing ");
+              exit(2);
+            }
+            for(int k =0; k<results[i][j].size; k++){
+              //write line no
+              printf("Line %d\n", results[i][j].line_no[k]);
+              if((nwrite = write(fout, &results[i][j].line_no[k], sizeof(int))) == -1){
+                perror("Error in Writing ");
+                exit(2);
+              }
+              //write line length
+              qlen = strlen(results[i][j].lines[k]) + 1;
+              if((nwrite = write(fout, &qlen, sizeof(int))) == -1){
+                perror("Error in Writing ");
+                exit(2);
+              }
+              //write line
+              printf("%.50s\n", results[i][j].lines[k]);
+              if((nwrite = write(fout, results[i][j].lines[k], qlen)) == -1){
+                perror("Error in Writing ");
+                exit(2);
+              }
+            }
+          }
+        }
+      }
       free(results_no);
       free(results);
     }
