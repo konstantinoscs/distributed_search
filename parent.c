@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -297,12 +298,24 @@ int parent_operate(int num_workers, pid_t *child, char *docfile, char **job_to_w
     printf("Got queries:\n");
     for(int j=0; j<queriesNo; j++)
       printf("%s\n", queries[j]);
+    //respawn any processes if nessecary
     if(child_exit){
       printf("Dead children!\n");
       child_spawn(child, num_workers, total_pathsize, paths, job_to_w, w_to_job,
         fifo_in, fifo_out, docfile, &queries, queriesNo);
       child_exit = 0;
     }
+
+    //error checking for search
+    if(!strcmp(queries[0], "/search")){
+      if(queriesNo < 4 || strcmp(queries[queriesNo-2], "-d") ||
+      !atof(queries[queriesNo-1])){
+        fprintf(stderr, "No (valid) timeout was given for /search\n");
+        deleteQueries(&queries, queriesNo);
+        continue;
+      }
+    }
+
     for(int i=0; i<num_workers; i++){
       //write
       if((nwrite = write(fifo_out[i], &queriesNo, sizeof(int))) == -1){

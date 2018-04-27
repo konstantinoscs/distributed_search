@@ -7,4 +7,11 @@ typedef struct registry{
   int lines;  //number of lines
 }Registry;
 
+typedef struct Result{
+  char *doc;
+  int *line_no;
+  char **lines;
+  int size;
+}Result;
+
 #endif

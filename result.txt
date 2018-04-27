@@ -1,0 +1,14 @@
+w is 1
+Worker operate starts!
+process:16157 docsize: 34
+Read 4 bytes/1 queries
+Read 6 qlen
+Read query /exit
+caought exit 
+Will exit
+child 0 exiting!
+w is 1
+Total pathsize/General pathsize: 31/31
+Got queries:
+/exit
+Caught a child_death

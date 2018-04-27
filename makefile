@@ -1,8 +1,8 @@
 CC = gcc
 FLAGS = -Wall
-DEPS = parent.h plist.h trie.h utilities.h worker.h
+DEPS = parent.h plist.h search.h trie.h utilities.h worker.h
 NAME = jobExecutor
-SOURCE = main.c parent.c plist.c trie.c utilities.c worker.c
+SOURCE = main.c parent.c plist.c search.c trie.c utilities.c worker.c
 OBJ = $(SOURCE:.c=.o)
 
 %.o : %.c

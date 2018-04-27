@@ -17,11 +17,12 @@ void init_trie(TrieNode *node, char ch){
 }
 
 //initialize the posting list for a word
-void init_plist(TrieNode *node, char* path, int line){
+void init_plist(TrieNode *node, char* path, int line, int docindex){
   node->list = malloc(sizeof(Plist));
   //initialize the frequencies list
   node->list->info = malloc(sizeof(DocInfo));
   node->list->info->doc = path;
+  node->list->info->docindex = docindex;
   node->list->info->appearance = malloc(sizeof(int)); //add the first appearance
   node->list->info->appearance[0] = line;
   node->list->info->no_lines = 1;
@@ -30,14 +31,15 @@ void init_plist(TrieNode *node, char* path, int line){
   node->list->last = node->list->info; //last is also the first
 }
 
-void insert_in_trie(TrieNode *node, char *word, int pos, int len, char *path, int line){
+void insert_in_trie(TrieNode *node, char *word, int pos, int len, char *path,
+  int line, int docindex){
   //printf("%c, p:%d, l:%d\n", word[pos], pos, len);
   if(node->letter == word[pos]){
     if(pos+1 == len){  //word has ended with the current letter
       if(node->list ==NULL)
-        init_plist(node, path, line);
+        init_plist(node, path, line, docindex);
       else
-        search_n_update(node->list, path, line);
+        search_n_update(node->list, path, line, docindex);
     }
     else{   //go one level down to next letter (vertical movement)
       if(node->down !=NULL && node->down->letter > word[pos+1]){ //(LAW &) ORDER
@@ -52,7 +54,7 @@ void insert_in_trie(TrieNode *node, char *word, int pos, int len, char *path, in
           init_trie(node->down, word[pos+1]);
         }
       }
-      insert_in_trie(node->down, word, ++pos, len, path, line);
+      insert_in_trie(node->down, word, ++pos, len, path, line, docindex);
     }
   }
   else { //go to the next letter (horizontal movement)
@@ -68,7 +70,7 @@ void insert_in_trie(TrieNode *node, char *word, int pos, int len, char *path, in
         init_trie(node->next, word[pos]);
       }
     }
-    insert_in_trie(node->next, word, pos, len, path, line);
+    insert_in_trie(node->next, word, pos, len, path, line, docindex);
   }
 }
 
@@ -116,7 +118,7 @@ TrieNode* makeTrie(Registry *documents, int docsize){
         if(trie->letter > word[0])     //swap root to maintain order (& law)
           swap_root(&trie, word[0]);
         //insert to trie
-        insert_in_trie(trie, word, 0, len, documents[j].path, i);
+        insert_in_trie(trie, word, 0, len, documents[j].path, i, j);
         subs += len;
         if(ch != '\0')           //if it's the end of the document don't search
           while(isspace(ch=subs[0]))   //set substring to new word

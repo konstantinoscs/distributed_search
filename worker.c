@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "registry.h"
+#include "search.h"
 #include "trie.h"
 #include "utilities.h"
 
@@ -44,7 +45,7 @@ int worker_operate(char *job_to_w, char *w_to_job){
   TrieNode *trie = NULL;
   FILE *logfile = NULL;
   printf("Worker operate starts!\n");
-  
+
   if ((fin = open(job_to_w, O_RDONLY)) < 0) {
     perror ("fifo in child open problem") ;
     exit(1) ;
@@ -120,6 +121,12 @@ int worker_operate(char *job_to_w, char *w_to_job){
   //here make trie and insert
   trie = makeTrie(documents, docc);
   //here
+  /*for(int i=0; i<docc; i++){
+    printf("documents[%d] has %d lines\n", i, documents[i].lines);
+    for(int j=0; j<documents[i].lines; j++){
+      printf("%d %d %s\n", i, j , documents[i].text[j]);
+    }
+  }*/
 
   while(1){
     nread = read(fin, &queriesNo, sizeof(int));
@@ -162,7 +169,11 @@ int worker_operate(char *job_to_w, char *w_to_job){
 
     cmd = queries[0];
     if(!strcmp(cmd, "/search")){
-
+      Result **results = malloc((queriesNo-3)*sizeof(Result*));
+      int * results_no = malloc((queriesNo-3)*sizeof(int));
+      search(results, results_no, trie, queries+1, queriesNo-3, documents);
+      free(results_no);
+      free(results);
     }
     else if(!strcmp(cmd, "/maxcount")){
       if(queriesNo > 1){

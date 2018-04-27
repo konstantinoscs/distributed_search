@@ -20,11 +20,12 @@ void delete_list(Plist *list){
 }
 
 //update the posting list for a word
-void search_n_update(Plist *list, char *path, int line){
+void search_n_update(Plist *list, char *path, int line, int docindex){
   DocInfo *temp = NULL;
   if(strcmp(list->last->doc, path)){
     temp = malloc(sizeof(DocInfo));
     temp->doc = path;
+    temp->docindex = docindex;
     temp->appearance = malloc(sizeof(int));
     temp->appearance[0] = line;
     temp->no_lines = 1;
