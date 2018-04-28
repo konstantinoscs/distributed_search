@@ -34,6 +34,10 @@ void child_death(int sig){
   }
 }
 
+void alarm_off(int sig){
+  printf("Driiiiiiiiiiiiiing, Alarm!\n");
+}
+
 void remake_fifos(int fifo_in, int fifo_out, char *job_to_w, char *w_to_job){
   //destroy existing fifos
   close(fifo_out);
@@ -309,12 +313,16 @@ int parent_operate(int num_workers, pid_t *child, char *docfile, char **job_to_w
   int total_pathsize=0, pathsize=0, paths_until_now=0;
   int queriesNo, qlen = 0;
   //initialize signal handler
-  struct sigaction new_worker;
+  struct sigaction new_worker, alarmhand;
   new_worker.sa_handler = child_death;
+  alarmhand.sa_handler = alarm_off;
   sigemptyset (&(new_worker.sa_mask));
+  sigemptyset (&(alarmhand.sa_mask));
   //new_worker.sa_flags = SA_SIGINFO;
   new_worker.sa_flags = 0;
+  alarmhand.sa_flags = 0;
   sigaction(SIGCHLD, &new_worker, NULL);
+  sigaction(SIGALRM, &alarmhand, NULL);
 
   fifo_in = malloc(num_workers*sizeof(int));
   fifo_out = malloc(num_workers*sizeof(int));
@@ -406,7 +414,7 @@ int parent_operate(int num_workers, pid_t *child, char *docfile, char **job_to_w
     }
     if(!strcmp(queries[0], "/search")){
       //start timeout
-      alarm(atoi(queries[queriesNo-2]));
+      alarm(atoi(queries[queriesNo-1]));
       for(int i=0; i<num_workers; i++){
         if(poll(fds, num_workers, -1) == -1){
           if(errno == EINTR)  //timeout
