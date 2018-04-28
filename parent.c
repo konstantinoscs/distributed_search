@@ -14,6 +14,7 @@
 #include "utilities.h"
 #include "worker.h"
 
+volatile sig_atomic_t send_kill;
 volatile sig_atomic_t child_exit;
 pid_t *dead_child;
 
@@ -35,7 +36,15 @@ void child_death(int sig){
 }
 
 void alarm_off(int sig){
+  send_kill = 1;
   printf("Driiiiiiiiiiiiiing, Alarm!\n");
+}
+
+void send_kill_children(int num_workers, pid_t *child){
+  for(int i=0; i<num_workers; i++)
+    kill(child[i], SIGALRM);
+  //reset send_kill
+  send_kill = 0;
 }
 
 void remake_fifos(int fifo_in, int fifo_out, char *job_to_w, char *w_to_job){
@@ -74,7 +83,6 @@ void child_spawn(pid_t *child, int num_workers, int total_pathsize, char** paths
 
   int paths_until_now=0, nwrite, qlen;
   int pathsize = ceil((double)total_pathsize/(double)num_workers);
-  printf("Located a dead child\n");
   for(int i=0; i<num_workers; i++){
     for(int k=0; k<child_exit; k++){
       if(dead_child[k] == child[i]){
@@ -82,11 +90,9 @@ void child_spawn(pid_t *child, int num_workers, int total_pathsize, char** paths
         //keep descriptors to give to new worker
         int fin;
         int fout;
-        printf("Will remake fifos\n");
         remake_fifos(fifo_in[i], fifo_out[i], job_to_w[i], w_to_job[i]);
         //update fds array
         fds[i].fd = fifo_in[i];
-        printf("Remade fifos\n");
         //fork here
         if((child[i]=fork()) == 0){
           //keep only the name of the correct fifos
@@ -104,7 +110,6 @@ void child_spawn(pid_t *child, int num_workers, int total_pathsize, char** paths
           deleteQueries(queries, queriesNo);
           free_executor(child, docfile, total_pathsize, paths, num_workers, job_to_w,
             w_to_job, fifo_in, fifo_out);
-          printf("i:%d, fifo in: %s, fifo out: %s\n", i, jtw, wtj);
           worker_operate(jtw, wtj);
           free(jtw);
           free(wtj);
@@ -122,8 +127,6 @@ void child_spawn(pid_t *child, int num_workers, int total_pathsize, char** paths
             perror ("fifo in parent open error ");
             exit(1);
           }
-
-          printf("parent tries to write\n");
           if((nwrite = write(fifo_out[i], &pathsize, sizeof(int))) == -1){
             perror("Error in Writing ") ;
             exit(2);
@@ -312,7 +315,7 @@ int parent_operate(int num_workers, pid_t *child, char *docfile, char **job_to_w
   char **queries = NULL, **paths = NULL;
   int total_pathsize=0, pathsize=0, paths_until_now=0;
   int queriesNo, qlen = 0;
-  //initialize signal handler
+  //initialize signal handlers
   struct sigaction new_worker, alarmhand;
   new_worker.sa_handler = child_death;
   alarmhand.sa_handler = alarm_off;
@@ -414,8 +417,9 @@ int parent_operate(int num_workers, pid_t *child, char *docfile, char **job_to_w
     }
     if(!strcmp(queries[0], "/search")){
       //start timeout
+      int ctr = 0, ctrdead = 0;
       alarm(atoi(queries[queriesNo-1]));
-      for(int i=0; i<num_workers; i++){
+      while(ctr+ctrdead < num_workers){
         if(poll(fds, num_workers, -1) == -1){
           if(errno == EINTR)  //timeout
             break;
@@ -427,10 +431,34 @@ int parent_operate(int num_workers, pid_t *child, char *docfile, char **job_to_w
           if(fds[j].revents == POLLIN){
             //read search results
             print_search_results(fifo_in[j], queries+1, queriesNo-3);
+            ctr++;
+          }
+          else if(fds[j].revents == POLLHUP){
+            ctrdead++;
           }
         }
       }
       alarm(0);
+      if(send_kill){
+        send_kill_children(num_workers, child);
+        send_kill = 0;
+      }
+      //add poll again to synchronize
+      if(poll(fds, num_workers, 0) == -1){
+        perror("Error in poll ");
+        exit(3);
+      }
+      for(int j=0; j<num_workers; j++){
+        if(fds[j].revents == POLLIN){
+          //read search results
+          print_search_results(fifo_in[j], queries+1, queriesNo-3);
+          ctr++;
+        }
+        else if(fds[j].revents == POLLHUP){
+          ctrdead++;
+        }
+      }
+      printf("Got answer back from %d workers and %d workers died\n", ctr, ctrdead);
     }
     else if(!strcmp(queries[0], "/maxcount")){
       parent_maxcount(queriesNo, num_workers, fifo_in, fifo_out);

@@ -16,6 +16,10 @@
 
 volatile sig_atomic_t writeflag = 1;
 
+void ack_deadline(int sig){
+  writeflag = 1;
+}
+
 int free_documents(Registry **documents, int docsize){
   for(int i=0; i<docsize; i++){
     free((*documents)[i].path);
@@ -47,14 +51,21 @@ int worker_operate(char *job_to_w, char *w_to_job){
   struct dirent *ent;
   TrieNode *trie = NULL;
   FILE *logfile = NULL;
+  //initialize signal handlers
+  struct sigaction deadline;
+  deadline.sa_handler = ack_deadline;
+  sigemptyset (&(deadline.sa_mask));
+  //new_worker.sa_flags = SA_SIGINFO;
+  deadline.sa_flags = 0;
+  sigaction(SIGALRM, &deadline, NULL);
   printf("Worker operate starts!\n");
 
   if ((fin = open(job_to_w, O_RDONLY)) < 0) {
-    perror ("fifo in child open problem") ;
+    perror("fifo in child open problem");
     exit(1) ;
   }
   if ((fout = open(w_to_job, O_WRONLY)) < 0){
-    perror ("fifo out open error ") ;
+    perror("fifo out open error ");
     exit(1) ;
   }
 
@@ -68,13 +79,13 @@ int worker_operate(char *job_to_w, char *w_to_job){
   for(int i=0; i<pathsize; i++){
     nread = read(fin, &qlen, sizeof(int));
     if (nread < 0) {
-      perror ("problem in reading ");
+      perror("problem in reading ");
       exit(5);
     }
     paths[i] = malloc(qlen);
     nread = read(fin, paths[i], qlen);
     if (nread < 0) {
-      perror ("problem in reading ");
+      perror("problem in reading ");
       exit(5);
     }
     else if(!nread){
