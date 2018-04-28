@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -20,7 +21,7 @@ int main(int argc, char **argv){
   }
   child = malloc(num_workers*sizeof(pid_t));
   make_fifo_arrays(&job_to_w, &w_to_job, num_workers);
-
+  mkdir("log", 0755);
   //start forking workers
   for(int i=0; i<num_workers; i++){
     if ((child[i] = fork()) == 0){

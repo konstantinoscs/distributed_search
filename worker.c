@@ -1,6 +1,7 @@
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +14,7 @@
 #include "trie.h"
 #include "utilities.h"
 
-int writeflag = 1;
+volatile sig_atomic_t writeflag = 1;
 
 int free_documents(Registry **documents, int docsize){
   for(int i=0; i<docsize; i++){
@@ -37,7 +38,7 @@ int byte_sum(Registry *documents, int docsize){
 
 int worker_operate(char *job_to_w, char *w_to_job){
   char **queries = NULL, *cmd = NULL, *abspath = malloc(1);
-  char **paths = NULL;
+  char **paths = NULL, *filename = NULL;
   int fout, fin, nread = 0, nwrite = 0, docc = 0, docm = 2;
   int queriesNo, qlen = 0; //number of queries and temporary length
   int pathsize, pid = getpid();
@@ -123,12 +124,9 @@ int worker_operate(char *job_to_w, char *w_to_job){
   //here make trie and insert
   trie = makeTrie(documents, docc);
   //here
-  /*for(int i=0; i<docc; i++){
-    printf("documents[%d] has %d lines\n", i, documents[i].lines);
-    for(int j=0; j<documents[i].lines; j++){
-      printf("%d %d %s\n", i, j , documents[i].text[j]);
-    }
-  }*/
+  filename = malloc(strlen("log/Worker_")+find_width(pid)+1);
+  sprintf(filename, "log/Worker_%d", pid);
+  logfile = fopen(filename, "w");
 
   while(1){
     nread = read(fin, &queriesNo, sizeof(int));
@@ -293,6 +291,7 @@ int worker_operate(char *job_to_w, char *w_to_job){
     deleteQueries(&queries, queriesNo);
   }
 
+  fclose(logfile);
   close(fin);
   close(fout);
   for(int i=0; i<pathsize; i++)
@@ -302,6 +301,7 @@ int worker_operate(char *job_to_w, char *w_to_job){
   free_documents(&documents, docc);
   delete_trie(trie);
   free(trie);
+  free(filename);
   printf("Will exit\n");
   return 1;
 }

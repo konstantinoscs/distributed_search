@@ -150,6 +150,12 @@ void deleteQueries(char ***queries, int queriesNo){
   *queries = NULL;
 }
 
+int find_width(int number){
+  int digits = 1;
+  while (number/=10) digits++;
+  return digits;
+}
+
 int free_worker(pid_t *child, char *docfile, int num_workers, char **job_to_w,
   char**w_to_job){
 
