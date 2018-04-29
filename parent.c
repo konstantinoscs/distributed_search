@@ -454,8 +454,7 @@ int parent_operate(int num_workers, pid_t *child, char *docfile, char **job_to_w
     else if(!strcmp(queries[0], "/wc")){
       int tsum = 0, sum = 0;
       for(int i=0; i<num_workers; i++){
-        nread = read(fifo_in[i], &tsum, sizeof(int));
-        if (nread < 0) {
+        if ((nread = read(fifo_in[i], &tsum, sizeof(int))) < 0) {
           perror ("problem in reading ");
           exit(5);
         }
@@ -464,6 +463,14 @@ int parent_operate(int num_workers, pid_t *child, char *docfile, char **job_to_w
       printf("Total number of bytes in all files: %d\n", sum);
     }
     else if(!strcmp(queries[0], "/exit")){
+      int total_words = 0;
+      for(int i=0; i<num_workers; i++){
+        if ((nread = read(fifo_in[i], &total_words, sizeof(int))) < 0) {
+          perror ("problem in reading ");
+          exit(5);
+        }
+        printf("Child with id %d founf %d total words in its files\n", child[i], total_words);
+      }
       deleteQueries(&queries, queriesNo);
       break;
     }

@@ -293,6 +293,10 @@ int worker_operate(char *job_to_w, char *w_to_job){
     }
     else if(!strcmp(cmd, "/exit")){
       printf("caught exit \n");
+      if((nwrite = write(fout, &total_words_found, sizeof(int))) == -1){
+        perror("Error in Writing ");
+        exit(2);
+      }
       deleteQueries(&queries, queriesNo);
       break;
     }
