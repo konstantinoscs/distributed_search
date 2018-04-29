@@ -217,27 +217,32 @@ void parent_maxcount(int queriesNo, int num_workers, int *fifo_in, int *fifo_out
         perror ("problem in reading ");
         exit(5);
       }
-      doc = realloc(doc, qlen);
-      //read directory path
-      nread = read(fifo_in[i], doc, qlen);
-      if (nread < 0) {
-        perror ("problem in reading ");
-        exit(5);
-      }
-      //read appearances of word
-      nread = read(fifo_in[i], &appears, sizeof(int));
-      if (nread < 0) {
-        perror ("problem in reading ");
-        exit(5);
-      }
-      printf("Parent Appearances %d, path %s\n", appears, doc);
-      if(appears > max_appears || (appears == max_appears && strcmp(doc, maxdoc) < 0)){
-        max_appears = appears;
-        maxdoc = realloc(maxdoc, qlen);
-        strcpy(maxdoc, doc);
+      if(qlen){
+        doc = realloc(doc, qlen);
+        //read directory path
+        nread = read(fifo_in[i], doc, qlen);
+        if (nread < 0) {
+          perror ("problem in reading ");
+          exit(5);
+        }
+        //read appearances of word
+        nread = read(fifo_in[i], &appears, sizeof(int));
+        if (nread < 0) {
+          perror ("problem in reading ");
+          exit(5);
+        }
+        printf("Parent Appearances %d, path %s\n", appears, doc);
+        if(appears > max_appears || (appears == max_appears && strcmp(doc, maxdoc) < 0)){
+          max_appears = appears;
+          maxdoc = realloc(maxdoc, qlen);
+          strcpy(maxdoc, doc);
+        }
       }
     }
-    printf("Parent max Appearances %d, path %s\n", max_appears, maxdoc);
+    if(max_appears)
+      printf("Parent max Appearances %d, path %s\n", max_appears, maxdoc);
+    else
+      printf("Word wasn't found in any document!\n");
     free(doc);
     free(maxdoc);
   }
@@ -469,7 +474,7 @@ int parent_operate(int num_workers, pid_t *child, char *docfile, char **job_to_w
           perror ("problem in reading ");
           exit(5);
         }
-        printf("Child with id %d founf %d total words in its files\n", child[i], total_words);
+        printf("Child with id %d found %d total words in its files\n", child[i], total_words);
       }
       deleteQueries(&queries, queriesNo);
       break;

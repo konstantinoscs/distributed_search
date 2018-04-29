@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "registry.h"
 #include "trie.h"
@@ -36,5 +37,24 @@ int search(Result **results, int *results_no, TrieNode *trie, char **queries,
       tempInfo = tempInfo->next;
     }
     results_no[i] = resctr;
+  }
+}
+
+void print_results(FILE *logfile, Result **results, int *results_no,
+  char **queries, int queriesNo){
+
+  time_t rtime;
+  struct tm *tinfo;
+  time(&rtime);
+  for(int i=0; i<queriesNo; i++){
+    if(!results_no[i]) continue;
+    tinfo = localtime(&rtime);
+    fprintf(logfile, "%d-%d-%d ", tinfo->tm_mday, tinfo->tm_mon, tinfo->tm_year+1900);
+    fprintf(logfile, "%dh %dm %ds : ", tinfo->tm_hour, tinfo->tm_min, tinfo->tm_sec);
+    fprintf(logfile, "search : %s", queries[i]);
+    for(int j=0; j<results_no[i]; j++){
+      fprintf(logfile, " : %s", results[i][j].doc);
+    }
+    fprintf(logfile, "\n");
   }
 }

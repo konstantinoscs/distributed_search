@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "registry.h"
@@ -38,6 +39,17 @@ int byte_sum(Registry *documents, int docsize){
     for(int j=0; j<documents[i].lines; j++)
       sum +=strlen(documents[i].text[j]);
   return sum;
+}
+
+void print_count_result(FILE *logfile, char *command, char *doc, int no_appear){
+  time_t rawtime;
+  struct tm *tinfo;
+  time(&rawtime);
+  tinfo = localtime(&rawtime);
+  printf("Current local time and date: %s", asctime(tinfo));
+  fprintf(logfile, "%d-%d-%d ", tinfo->tm_mday, tinfo->tm_mon, tinfo->tm_year+1900);
+  fprintf(logfile, "%dh %dm %ds ", tinfo->tm_hour, tinfo->tm_min, tinfo->tm_sec);
+  fprintf(logfile, ": %s : %s : %d\n", command, doc, no_appear);
 }
 
 int worker_operate(char *job_to_w, char *w_to_job){
@@ -93,10 +105,6 @@ int worker_operate(char *job_to_w, char *w_to_job){
     }
   }
 
-  /*printf("Process:%d, pathsize %d\n", getpid(), pathsize);
-  printf("Paths:\n");
-  for(int i=0; i<pathsize; i++)
-    printf("Process:%d path %s\n", getpid(), paths[i]);*/
   //here load everything to memory - trie
   for(int i=0; i<pathsize; i++){
     //printf("Testing path:%s\n", paths[i]);
@@ -114,7 +122,6 @@ int worker_operate(char *job_to_w, char *w_to_job){
         strcpy(abspath, paths[i]);
         strcat(abspath, "/");
         strcat(abspath, ent->d_name);
-        //printf("abspath: %s\n", abspath);
         documents[docc].path = malloc(strlen(abspath)+1);
         strcpy(documents[docc].path, abspath);
         parse_docfile(documents[docc].path, &(documents[docc].text), &(documents[docc].lines));
@@ -228,6 +235,7 @@ int worker_operate(char *job_to_w, char *w_to_job){
           }
         }
       }
+      print_results(logfile, results, results_no, queries+1, queriesNo-3);
       for(int i=0; i<queriesNo-3; i++){
         for(int j=0; j<results_no[i]; j++)
           free(results[i][j].lines);
@@ -241,18 +249,21 @@ int worker_operate(char *job_to_w, char *w_to_job){
         char *doc = NULL;   //the path of the doc
         int no_appear;
         maxcount(trie, queries[1], &doc, &no_appear);
-        qlen = strlen(doc) +1;
+        qlen = doc ? strlen(doc) + 1 : 0;
         if((nwrite = write(fout, &qlen, sizeof(int))) == -1){
           perror("Error in Writing ") ;
           exit(2);
         }
-        if((nwrite = write(fout, doc, qlen)) == -1){
-          perror("Error in Writing ") ;
-          exit(2);
-        }
-        if((nwrite = write(fout, &no_appear, sizeof(int))) == -1){
-          perror("Error in Writing ") ;
-          exit(2);
+        if(qlen){
+          if((nwrite = write(fout, doc, qlen)) == -1){
+            perror("Error in Writing ") ;
+            exit(2);
+          }
+          if((nwrite = write(fout, &no_appear, sizeof(int))) == -1){
+            perror("Error in Writing ") ;
+            exit(2);
+          }
+          print_count_result(logfile, "maxcount", doc, no_appear);
         }
       }
       else
@@ -279,6 +290,7 @@ int worker_operate(char *job_to_w, char *w_to_job){
             perror("Error in Writing ") ;
             exit(2);
           }
+          print_count_result(logfile, "mincount", doc, no_appear);
         }
       }
       else
@@ -293,6 +305,7 @@ int worker_operate(char *job_to_w, char *w_to_job){
     }
     else if(!strcmp(cmd, "/exit")){
       printf("caught exit \n");
+      //send to parent all words that were found
       if((nwrite = write(fout, &total_words_found, sizeof(int))) == -1){
         perror("Error in Writing ");
         exit(2);
