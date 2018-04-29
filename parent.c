@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <math.h>
 #include <poll.h>
 #include <signal.h>
@@ -18,7 +19,7 @@ volatile sig_atomic_t send_kill;
 volatile sig_atomic_t child_exit;
 pid_t *dead_child;
 
-//signal handler
+//signal handler for a child death
 void child_death(int sig){
   printf("Caught a child_death\n");
   while(1){
@@ -30,8 +31,6 @@ void child_death(int sig){
     printf("Child that died is %d\n", pid);
     dead_child = realloc(dead_child, (++child_exit)*sizeof(pid_t));
     dead_child[child_exit-1] = pid;
-    // something happened with child 'pid', do something about it...
-    // Details are in 'status', see waitpid() manpage
   }
 }
 
@@ -249,56 +248,42 @@ void parent_maxcount(int queriesNo, int num_workers, int *fifo_in, int *fifo_out
 
 void parent_mincount(int queriesNo, int num_workers, int *fifo_in, int *fifo_out){
   if(queriesNo > 1){
-    int min_appears = 0, appears = 0, qlen, nread;
+    int min_appears = INT_MAX, appears = 0, qlen=0, nread, j=0;
     char *doc = malloc(1), *mindoc = malloc(1);
 
-    nread = read(fifo_in[0], &qlen, sizeof(int));
-    if (nread < 0) {
-      perror ("problem in reading ");
-      exit(5);
-    }
-    mindoc = realloc(mindoc, qlen);
-    //read directory path
-    nread = read(fifo_in[0], mindoc, qlen);
-    if (nread < 0) {
-      perror ("problem in reading ");
-      exit(5);
-    }
-    //read appearances of word
-    nread = read(fifo_in[0], &min_appears, sizeof(int));
-    if (nread < 0) {
-      perror ("problem in reading ");
-      exit(5);
-    }
-
-    for(int i=1; i<num_workers; i++){
+    for(int i=0; i<num_workers; i++){
       //read directory string length
       nread = read(fifo_in[i], &qlen, sizeof(int));
       if (nread < 0) {
         perror ("problem in reading ");
         exit(5);
       }
-      doc = realloc(doc, qlen);
-      //read directory path
-      nread = read(fifo_in[i], doc, qlen);
-      if (nread < 0) {
-        perror ("problem in reading ");
-        exit(5);
-      }
-      //read appearances of word
-      nread = read(fifo_in[i], &appears, sizeof(int));
-      if (nread < 0) {
-        perror ("problem in reading ");
-        exit(5);
-      }
-      printf("Parent Appearances %d, path %s\n", appears, doc);
-      if(appears < min_appears){
-        min_appears = appears;
-        mindoc = realloc(mindoc, qlen);
-        strcpy(mindoc, doc);
+      if(qlen){
+        doc = realloc(doc, qlen);
+        //read directory path
+        nread = read(fifo_in[i], doc, qlen);
+        if (nread < 0) {
+          perror ("problem in reading ");
+          exit(5);
+        }
+        //read appearances of word
+        nread = read(fifo_in[i], &appears, sizeof(int));
+        if (nread < 0) {
+          perror ("problem in reading ");
+          exit(5);
+        }
+        printf("Parent Appearances %d, path %s\n", appears, doc);
+        if(appears < min_appears){
+          min_appears = appears;
+          mindoc = realloc(mindoc, qlen);
+          strcpy(mindoc, doc);
+        }
       }
     }
-    printf("Parent min Appearances %d, path %s\n", min_appears, mindoc);
+    if(min_appears != INT_MAX)
+      printf("Parent min Appearances %d, path %s\n", min_appears, mindoc);
+    else
+      printf("Word wasn't found in any document!\n");
     free(doc);
     free(mindoc);
   }

@@ -16,7 +16,7 @@ void update_results(Result *result, DocInfo *info, Registry *documents){
 }
 
 int search(Result **results, int *results_no, TrieNode *trie, char **queries,
-  int queriesNo, Registry *documents){
+  int queriesNo, Registry *documents, int *total_words_found){
   TrieNode *tempTrie = NULL;
   DocInfo *tempInfo = NULL;
   for(int i=0; i<queriesNo; i++){
@@ -25,6 +25,7 @@ int search(Result **results, int *results_no, TrieNode *trie, char **queries,
     tempTrie = find_word(trie, queries[i]);
     if(tempTrie == NULL)  //avoid bad things
       continue;
+    (*total_words_found)++;
     tempInfo = tempTrie->list->info;
     //printf("Searching in dir %s\n", tempInfo->doc);
     int resctr = 0;

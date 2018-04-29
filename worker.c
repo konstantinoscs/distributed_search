@@ -45,7 +45,7 @@ int worker_operate(char *job_to_w, char *w_to_job){
   char **paths = NULL, *filename = NULL;
   int fout, fin, nread = 0, nwrite = 0, docc = 0, docm = 2;
   int queriesNo, qlen = 0; //number of queries and temporary length
-  int pathsize, pid = getpid();
+  int pathsize, pid = getpid(), total_words_found =0;
   Registry *documents = malloc(docm*sizeof(Registry));
   DIR *dir;
   struct dirent *ent;
@@ -91,16 +91,12 @@ int worker_operate(char *job_to_w, char *w_to_job){
     else if(!nread){
       break;
     }
-    //printf("Read path %s\n", paths[i]);
-    //fflush(stdout);
   }
 
   /*printf("Process:%d, pathsize %d\n", getpid(), pathsize);
   printf("Paths:\n");
   for(int i=0; i<pathsize; i++)
-    printf("Process:%d path %s\n", getpid(), paths[i]);
-  printf("Process:%d fifo %s\n", getpid(), job_to_w);
-  printf("Process:%d fifo %s\n", getpid(), w_to_job);*/
+    printf("Process:%d path %s\n", getpid(), paths[i]);*/
   //here load everything to memory - trie
   for(int i=0; i<pathsize; i++){
     //printf("Testing path:%s\n", paths[i]);
@@ -183,7 +179,7 @@ int worker_operate(char *job_to_w, char *w_to_job){
       writeflag = 1;
       Result **results = malloc((queriesNo-3)*sizeof(Result*));
       int *results_no = malloc((queriesNo-3)*sizeof(int));
-      search(results, results_no, trie, queries+1, queriesNo-3, documents);
+      search(results, results_no, trie, queries+1, queriesNo-3, documents, &total_words_found);
       if(write){  //in case we had a timeout
         for(int i=0; i<queriesNo-3; i++){
           //printf("Results for query: %s\n", queries[i]);
@@ -267,18 +263,22 @@ int worker_operate(char *job_to_w, char *w_to_job){
         char *doc = NULL;   //the path of the doc
         int no_appear;
         mincount(trie, queries[1], &doc, &no_appear);
-        qlen = strlen(doc) +1;
+        qlen = doc ? strlen(doc) + 1 : 0;
+        //qlen = strlen(doc) +1;
         if((nwrite = write(fout, &qlen, sizeof(int))) == -1){
           perror("Error in Writing ") ;
           exit(2);
         }
-        if((nwrite = write(fout, doc, qlen)) == -1){
-          perror("Error in Writing ") ;
-          exit(2);
-        }
-        if((nwrite = write(fout, &no_appear, sizeof(int))) == -1){
-          perror("Error in Writing ") ;
-          exit(2);
+        //check if word was found
+        if(qlen){
+          if((nwrite = write(fout, doc, qlen)) == -1){
+            perror("Error in Writing ") ;
+            exit(2);
+          }
+          if((nwrite = write(fout, &no_appear, sizeof(int))) == -1){
+            perror("Error in Writing ") ;
+            exit(2);
+          }
         }
       }
       else

@@ -5,6 +5,6 @@
 #include "trie.h"
 
 int search(Result **results, int *results_no, TrieNode *trie, char **queries,
-  int queriesNo, Registry *documents);
+  int queriesNo, Registry *documents, int *total_words_found);
 
 #endif
